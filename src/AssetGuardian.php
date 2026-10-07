@@ -12,6 +12,7 @@ use craft\events\RegisterUserPermissionsEvent;
 use craft\services\UserPermissions;
 use craft\web\UrlManager;
 use craft\web\View;
+use craft\helpers\UrlHelper;
 use yii\base\Event;
 use abdulkadiragoliya\assetguardian\models\Settings;
 use abdulkadiragoliya\assetguardian\services\CleanupService;
@@ -223,7 +224,9 @@ class AssetGuardian extends Plugin
      */
     public function getSettingsResponse(): mixed
     {
-        return Craft::$app->getResponse()->redirect('asset-guardian/settings');
+       // return Craft::$app->getResponse()->redirect('asset-guardian/settings');
+        return Craft::$app->getResponse()->redirect(UrlHelper::cpUrl('asset-guardian/settings'));
+		
     }
 
     /**
