@@ -1,0 +1,419 @@
+{% extends "asset-guardian/_layouts/cp" %}
+
+{% set selectedSubnavItem = 'explorer' %}
+{% set title = 'Asset Explorer'|t('asset-guardian') %}
+
+{% block pageContent %}
+    <style>
+        .ag-explorer {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Top Summary Strip */
+        .ag-summary-strip {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 18px 24px;
+            background: #ffffff;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            flex-wrap: wrap;
+        }
+        .ag-summary-title h2 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 700;
+            color: #111827;
+        }
+        .ag-summary-title p {
+            margin: 4px 0 0;
+            font-size: 13px;
+            color: #6b7280;
+        }
+        .ag-summary-metrics {
+            display: flex;
+            gap: 24px;
+        }
+        .ag-summary-metric {
+            display: flex;
+            flex-direction: column;
+            text-align: right;
+        }
+        .ag-summary-metric .val {
+            font-size: 20px;
+            font-weight: 700;
+            color: #111827;
+        }
+        .ag-summary-metric .lbl {
+            font-size: 11px;
+            text-transform: uppercase;
+            font-weight: 600;
+            color: #6b7280;
+            letter-spacing: 0.5px;
+        }
+
+        /* Filter Toolbar */
+        .ag-filter-box {
+            background: #ffffff;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            padding: 16px 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+        .ag-filters-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Table Card */
+        .ag-table-card {
+            background: #ffffff;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+        .ag-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .ag-table th {
+            background: #f9fafb;
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 1px solid #e5e7eb;
+            white-space: nowrap;
+        }
+        .ag-table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid #f3f4f6;
+            vertical-align: middle;
+        }
+        .ag-table tr:hover td {
+            background: #fafafa;
+        }
+
+        /* Thumb & Info */
+        .ag-thumb-wrap {
+            width: 44px;
+            height: 44px;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+            background: #f3f4f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        .ag-thumb-wrap img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .ag-file-cell {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .ag-file-name {
+            font-weight: 600;
+            color: #111827;
+            word-break: break-all;
+        }
+        .ag-file-meta {
+            font-size: 11px;
+            color: #6b7280;
+            margin-top: 2px;
+        }
+
+        /* Badges */
+        .ag-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .ag-badge-blue { background: #e0f2fe; color: #0369a1; }
+        .ag-badge-amber { background: #fef3c7; color: #92400e; }
+        .ag-badge-purple { background: #f3e8ff; color: #6b21a8; }
+        .ag-badge-red { background: #fee2e2; color: #991b1b; }
+        .ag-badge-green { background: #dcfce7; color: #166534; }
+        .ag-badge-gray { background: #f3f4f6; color: #4b5563; }
+
+        /* Pagination */
+        .ag-pagination {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border-top: 1px solid #e5e7eb;
+            background: #fafafa;
+        }
+    </style>
+
+    <div class="ag-explorer">
+        {# Top Summary Strip #}
+        <div class="ag-summary-strip">
+            <div class="ag-summary-title">
+                <h2>{{ 'Asset Explorer'|t('asset-guardian') }}</h2>
+                <p>{{ 'Filterable asset inventory across all volumes, storage footprints, and health attributes.'|t('asset-guardian') }}</p>
+            </div>
+            <div class="ag-summary-metrics">
+                <div class="ag-summary-metric">
+                    <span class="val">{{ totalCount }}</span>
+                    <span class="lbl">{{ 'Matching Assets'|t('asset-guardian') }}</span>
+                </div>
+                <div class="ag-summary-metric">
+                    <span class="val">{{ formattedTotalBytes }}</span>
+                    <span class="lbl">{{ 'Total Size'|t('asset-guardian') }}</span>
+                </div>
+            </div>
+        </div>
+
+        {# Multi-Filter Form #}
+        <form method="get" class="ag-filter-box">
+            <div class="ag-filters-row">
+                {# Volume #}
+                <div class="select">
+                    <select name="volume" onchange="this.form.submit()">
+                        <option value="">{{ 'All Volumes'|t('asset-guardian') }}</option>
+                        {% for vol in volumes %}
+                            <option value="{{ vol.handle }}" {% if activeVolume == vol.handle %}selected{% endif %}>
+                                {{ vol.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                {# Kind #}
+                <div class="select">
+                    <select name="kind" onchange="this.form.submit()">
+                        <option value="">{{ 'All File Types'|t('asset-guardian') }}</option>
+                        <option value="image" {% if activeKind == 'image' %}selected{% endif %}>{{ 'Images'|t('asset-guardian') }}</option>
+                        <option value="pdf" {% if activeKind == 'pdf' %}selected{% endif %}>{{ 'PDF Documents'|t('asset-guardian') }}</option>
+                        <option value="video" {% if activeKind == 'video' %}selected{% endif %}>{{ 'Videos'|t('asset-guardian') }}</option>
+                        <option value="audio" {% if activeKind == 'audio' %}selected{% endif %}>{{ 'Audio'|t('asset-guardian') }}</option>
+                        <option value="svg" {% if activeKind == 'svg' %}selected{% endif %}>{{ 'SVG Vectors'|t('asset-guardian') }}</option>
+                        <option value="compressed" {% if activeKind == 'compressed' %}selected{% endif %}>{{ 'Archives'|t('asset-guardian') }}</option>
+                    </select>
+                </div>
+
+                {# Usage #}
+                <div class="select">
+                    <select name="usage" onchange="this.form.submit()">
+                        <option value="">{{ 'All Usage'|t('asset-guardian') }}</option>
+                        <option value="used" {% if activeUsage == 'used' %}selected{% endif %}>{{ 'Used In Content'|t('asset-guardian') }}</option>
+                        <option value="unused" {% if activeUsage == 'unused' %}selected{% endif %}>{{ 'Unused Only'|t('asset-guardian') }}</option>
+                    </select>
+                </div>
+
+                {# Alt Text #}
+                <div class="select">
+                    <select name="alt" onchange="this.form.submit()">
+                        <option value="">{{ 'All Alt Text'|t('asset-guardian') }}</option>
+                        <option value="missing" {% if activeAlt == 'missing' %}selected{% endif %}>{{ 'Missing Alt'|t('asset-guardian') }}</option>
+                        <option value="present" {% if activeAlt == 'present' %}selected{% endif %}>{{ 'Has Alt Text'|t('asset-guardian') }}</option>
+                    </select>
+                </div>
+
+                {# Duplicates #}
+                <div class="select">
+                    <select name="duplicate" onchange="this.form.submit()">
+                        <option value="">{{ 'All Files'|t('asset-guardian') }}</option>
+                        <option value="yes" {% if activeDuplicate == 'yes' %}selected{% endif %}>{{ 'Duplicates Only'|t('asset-guardian') }}</option>
+                        <option value="no" {% if activeDuplicate == 'no' %}selected{% endif %}>{{ 'Unique Files'|t('asset-guardian') }}</option>
+                    </select>
+                </div>
+
+                {# Sort #}
+                <div class="select">
+                    <select name="sort" onchange="this.form.submit()">
+                        <option value="date_desc" {% if activeSort == 'date_desc' %}selected{% endif %}>{{ 'Newest First'|t('asset-guardian') }}</option>
+                        <option value="date_asc" {% if activeSort == 'date_asc' %}selected{% endif %}>{{ 'Oldest First'|t('asset-guardian') }}</option>
+                        <option value="size_desc" {% if activeSort == 'size_desc' %}selected{% endif %}>{{ 'Largest Size'|t('asset-guardian') }}</option>
+                        <option value="size_asc" {% if activeSort == 'size_asc' %}selected{% endif %}>{{ 'Smallest Size'|t('asset-guardian') }}</option>
+                        <option value="name_asc" {% if activeSort == 'name_asc' %}selected{% endif %}>{{ 'Filename (A-Z)'|t('asset-guardian') }}</option>
+                        <option value="name_desc" {% if activeSort == 'name_desc' %}selected{% endif %}>{{ 'Filename (Z-A)'|t('asset-guardian') }}</option>
+                    </select>
+                </div>
+
+                {# Search #}
+                <div class="texticon search icon">
+                    <input type="text"
+                           name="search"
+                           value="{{ activeSearch }}"
+                           class="text"
+                           placeholder="{{ 'Search filename...'|t('asset-guardian') }}"
+                           autocomplete="off">
+                </div>
+
+                <button type="submit" class="btn">{{ 'Filter'|t('asset-guardian') }}</button>
+
+                {% if activeVolume or activeKind or activeUsage or activeAlt or activeDuplicate or activeSearch or activeSort != 'date_desc' %}
+                    <a href="{{ cpUrl('asset-guardian/explorer') }}" class="btn">{{ 'Reset'|t('asset-guardian') }}</a>
+                {% endif %}
+            </div>
+        </form>
+
+        {# Data Table Card #}
+        <div class="ag-table-card">
+            {% if items|length == 0 %}
+                <div style="padding: 48px 24px; text-align: center;">
+                    <div style="font-size: 36px; margin-bottom: 12px;">🔍</div>
+                    <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: #111827;">
+                        {{ 'No assets found matching the selected criteria.'|t('asset-guardian') }}
+                    </h3>
+                    <p style="margin: 6px 0 0; color: #6b7280; font-size: 13px;">
+                        {{ 'Try broadening your search keywords or clearing some filters.'|t('asset-guardian') }}
+                    </p>
+                </div>
+            {% else %}
+                <table class="ag-table">
+                    <thead>
+                        <tr>
+                            <th>{{ 'Asset'|t('asset-guardian') }}</th>
+                            <th style="width: 130px;">{{ 'Volume'|t('asset-guardian') }}</th>
+                            <th style="width: 100px;">{{ 'Size'|t('asset-guardian') }}</th>
+                            <th style="width: 120px;">{{ 'Usage'|t('asset-guardian') }}</th>
+                            <th style="width: 120px;">{{ 'Alt Text'|t('asset-guardian') }}</th>
+                            <th style="width: 130px;">{{ 'Status & Flags'|t('asset-guardian') }}</th>
+                            <th style="width: 90px; text-align: right;">{{ 'Actions'|t('asset-guardian') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in items %}
+                            <tr>
+                                <td>
+                                    <div class="ag-file-cell">
+                                        <div class="ag-thumb-wrap">
+                                            {% if item.thumbUrl %}
+                                                <img src="{{ item.thumbUrl }}" alt="{{ item.filename }}" loading="lazy">
+                                            {% else %}
+                                                <span class="icon" data-icon="{{ item.kind == 'image' ? 'image' : 'file' }}"></span>
+                                            {% endif %}
+                                        </div>
+                                        <div>
+                                            <div class="ag-file-name" title="{{ item.filename }}">
+                                                {{ item.filename }}
+                                            </div>
+                                            <div class="ag-file-meta">
+                                                {{ item.kind|capitalize }}
+                                                {% if item.dimensions %}&bull; {{ item.dimensions }}{% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="ag-badge ag-badge-gray">{{ item.volumeName }}</span>
+                                </td>
+                                <td>
+                                    <strong>{{ item.formattedSize }}</strong>
+                                </td>
+                                <td>
+                                    {% if item.isUsed %}
+                                        <span class="ag-badge ag-badge-blue" title="{{ 'Referenced in Craft content'|t('asset-guardian') }}">
+                                            {{ '{count} Relations'|t('asset-guardian', { count: item.usageCount }) }}
+                                        </span>
+                                    {% else %}
+                                        <span class="ag-badge ag-badge-amber">
+                                            {{ 'Unused'|t('asset-guardian') }}
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if item.kind == 'image' %}
+                                        {% if item.hasAlt %}
+                                            <span class="ag-badge ag-badge-green" title="{{ item.alt }}">
+                                                {{ 'Has Alt'|t('asset-guardian') }}
+                                            </span>
+                                        {% else %}
+                                            <span class="ag-badge ag-badge-red">
+                                                {{ 'Missing Alt'|t('asset-guardian') }}
+                                            </span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span style="color: #9ca3af;">—</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                                        {% if item.isDuplicate %}
+                                            <span class="ag-badge ag-badge-purple">{{ 'Duplicate'|t('asset-guardian') }}</span>
+                                        {% endif %}
+
+                                        {% if item.risk == 'high' %}
+                                            <span class="ag-badge ag-badge-red">{{ 'High Risk'|t('asset-guardian') }}</span>
+                                        {% elseif item.risk == 'medium' %}
+                                            <span class="ag-badge ag-badge-amber">{{ 'Medium'|t('asset-guardian') }}</span>
+                                        {% else %}
+                                            <span class="ag-badge ag-badge-gray">{{ 'Low Risk'|t('asset-guardian') }}</span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td style="text-align: right;">
+                                    <a href="{{ item.editUrl }}"
+                                       class="btn small"
+                                       target="_blank"
+                                       rel="noopener"
+                                       title="{{ 'Open in Craft CP'|t('asset-guardian') }}">
+                                        {{ 'Edit'|t('asset-guardian') }}
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+                {# Pagination #}
+                {% if totalPages > 1 %}
+                    <div class="ag-pagination">
+                        <div>
+                            {{ 'Page {current} of {total}'|t('asset-guardian', { current: currentPage, total: totalPages }) }}
+                        </div>
+                        <div class="btn-group">
+                            {% if currentPage > 1 %}
+                                <a href="{{ cpUrl('asset-guardian/explorer', {
+                                    page: currentPage - 1,
+                                    volume: activeVolume,
+                                    kind: activeKind,
+                                    usage: activeUsage,
+                                    alt: activeAlt,
+                                    duplicate: activeDuplicate,
+                                    search: activeSearch,
+                                    sort: activeSort
+                                }) }}" class="btn">{{ 'Previous'|t('asset-guardian') }}</a>
+                            {% endif %}
+
+                            {% if currentPage < totalPages %}
+                                <a href="{{ cpUrl('asset-guardian/explorer', {
+                                    page: currentPage + 1,
+                                    volume: activeVolume,
+                                    kind: activeKind,
+                                    usage: activeUsage,
+                                    alt: activeAlt,
+                                    duplicate: activeDuplicate,
+                                    search: activeSearch,
+                                    sort: activeSort
+                                }) }}" class="btn">{{ 'Next'|t('asset-guardian') }}</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

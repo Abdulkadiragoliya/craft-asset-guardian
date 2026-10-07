@@ -1,0 +1,49 @@
+{% import "_includes/forms.twig" as forms %}
+
+{{ forms.checkboxSelectField({
+    label: 'Volumes to Scan'|t('asset-guardian'),
+    instructions: 'Select which asset volumes should be included in Asset Guardian scans. Leave empty to scan all volumes.'|t('asset-guardian'),
+    name: 'enabledVolumes',
+    values: settings.enabledVolumes ?? [],
+    options: craft.app.volumes.allVolumes|map(v => { label: v.name, value: v.handle }),
+}) }}
+
+<hr>
+
+{{ forms.textField({
+    label: 'Unused Age Threshold (Days)'|t('asset-guardian'),
+    instructions: 'Assets unreferenced and older than this number of days will be flagged for review.'|t('asset-guardian'),
+    name: 'unusedAgeThresholdDays',
+    value: settings.unusedAgeThresholdDays,
+    type: 'number',
+    size: 10,
+    errors: settings.getErrors('unusedAgeThresholdDays'),
+}) }}
+
+{{ forms.textField({
+    label: 'Large File Threshold (Bytes)'|t('asset-guardian'),
+    instructions: 'Files exceeding this byte size will be highlighted as oversized (default: 10 MB = 10,485,760 bytes).'|t('asset-guardian'),
+    name: 'largeFileThresholdBytes',
+    value: settings.largeFileThresholdBytes,
+    type: 'number',
+    size: 15,
+    errors: settings.getErrors('largeFileThresholdBytes'),
+}) }}
+
+<hr>
+
+{{ forms.lightswitchField({
+    label: 'Scan for Missing Alt Text'|t('asset-guardian'),
+    instructions: 'Whether image assets should be scanned for missing accessibility alt text.'|t('asset-guardian'),
+    name: 'scanMissingAlt',
+    on: settings.scanMissingAlt,
+    errors: settings.getErrors('scanMissingAlt'),
+}) }}
+
+{{ forms.lightswitchField({
+    label: 'Safe Cleanup: Move to Trash Only'|t('asset-guardian'),
+    instructions: 'When enabled, cleanup operations move assets to Craft Trash rather than permanently deleting them from the filesystem.'|t('asset-guardian'),
+    name: 'safeTrashOnly',
+    on: settings.safeTrashOnly,
+    errors: settings.getErrors('safeTrashOnly'),
+}) }}

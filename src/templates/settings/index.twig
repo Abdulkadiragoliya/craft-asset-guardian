@@ -1,0 +1,25 @@
+{% extends "asset-guardian/_layouts/cp" %}
+{% import "_includes/forms.twig" as forms %}
+
+{% set selectedSubnavItem = 'settings' %}
+{% set title = 'Settings'|t('asset-guardian') %}
+
+{% block actionButton %}
+    <button type="submit" form="settings-form" class="btn submit">{{ 'Save Settings'|t('app') }}</button>
+{% endblock %}
+
+{% block pageContent %}
+    <form method="post" id="settings-form" accept-charset="UTF-8">
+        {{ csrfInput() }}
+        {{ actionInput('asset-guardian/settings/save') }}
+        {{ redirectInput('asset-guardian/settings') }}
+
+        <div class="readable card" style="padding: 24px;">
+            {% include "asset-guardian/settings/_plugin-settings" %}
+
+            <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e5e7eb;">
+                <button type="submit" class="btn submit">{{ 'Save Settings'|t('app') }}</button>
+            </div>
+        </div>
+    </form>
+{% endblock %}

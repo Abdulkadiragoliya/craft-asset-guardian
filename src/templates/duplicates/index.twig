@@ -1,0 +1,383 @@
+{% extends "asset-guardian/_layouts/cp" %}
+
+{% set selectedSubnavItem = 'duplicates' %}
+{% set title = 'Duplicates'|t('asset-guardian') %}
+
+{% block pageContent %}
+    <style>
+        .ag-page {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .ag-page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 16px;
+            padding: 20px 24px;
+            background: var(--card-bg, #fff);
+            border-radius: var(--border-radius, 8px);
+            border: 1px solid var(--border-color, #e5e7eb);
+        }
+        .ag-page-header h1 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-color, #111827);
+        }
+        .ag-page-header p {
+            margin: 4px 0 0 0;
+            font-size: 13px;
+            color: #6b7280;
+        }
+        .ag-summary-pills {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .ag-summary-pill {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+        .ag-summary-pill strong {
+            color: #0f172a;
+            font-weight: 700;
+        }
+
+        /* Group Card */
+        .ag-group-card {
+            background: var(--card-bg, #fff);
+            border-radius: var(--border-radius, 8px);
+            border: 1px solid var(--border-color, #e5e7eb);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .ag-group-header {
+            padding: 16px 20px;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .ag-group-title {
+            margin: 0;
+            font-size: 15px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .ag-primary-badge {
+            background: #ecfdf5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        /* Modal */
+        .ag-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(2px);
+            z-index: 1200;
+            align-items: center;
+            justify-content: center;
+        }
+        .ag-modal-overlay.active {
+            display: flex;
+        }
+        .ag-modal-box {
+            background: #fff;
+            width: 90%;
+            max-width: 600px;
+            border-radius: 10px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            max-height: 90vh;
+        }
+        .ag-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 24px;
+            border-bottom: 1px solid #e2e8f0;
+            background: #f8fafc;
+        }
+        .ag-modal-body {
+            padding: 24px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .ag-modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid #e2e8f0;
+            background: #f8fafc;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+    </style>
+
+    <div class="ag-page">
+
+        {# Header #}
+        <div class="ag-page-header">
+            <div>
+                <h1>{{ 'Duplicate Assets'|t('asset-guardian') }}</h1>
+                <p>{{ 'Exact file-content duplicates detected by comparing verified cryptographic content hashes.'|t('asset-guardian') }}</p>
+            </div>
+
+            <div class="ag-summary-pills">
+                <div class="ag-summary-pill">
+                    <span>{{ 'Duplicate Groups:'|t('asset-guardian') }}</span>
+                    <strong>{{ totalGroups|number }}</strong>
+                </div>
+                <div class="ag-summary-pill">
+                    <span>{{ 'Redundant Files:'|t('asset-guardian') }}</span>
+                    <strong>{{ totalDuplicateFiles|number }}</strong>
+                </div>
+                <div class="ag-summary-pill">
+                    <span>{{ 'Potential Savings:'|t('asset-guardian') }}</span>
+                    <strong style="color: #059669;">{{ formattedPotentialBytes }}</strong>
+                </div>
+            </div>
+        </div>
+
+        {# Filters #}
+        <div class="card" style="padding: 14px 20px;">
+            <form method="get" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 0;">
+                <input type="text"
+                       name="search"
+                       placeholder="{{ 'Search duplicate filename...'|t('asset-guardian') }}"
+                       value="{{ currentFilters.search }}"
+                       style="padding: 6px 12px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; min-width: 220px;">
+
+                <select name="volume" style="padding: 6px 12px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                    <option value="">{{ 'All Volumes'|t('asset-guardian') }}</option>
+                    {% for v in volumes %}
+                        <option value="{{ v.handle }}" {{ currentFilters.volume == v.handle ? 'selected' : '' }}>
+                            {{ v.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+
+                <button type="submit" class="btn small">{{ 'Filter'|t('app') }}</button>
+
+                {% if currentFilters.search or currentFilters.volume %}
+                    <a href="{{ cpUrl('asset-guardian/duplicates') }}" class="btn small light">{{ 'Reset'|t('asset-guardian') }}</a>
+                {% endif %}
+            </form>
+        </div>
+
+        {# Duplicate Groups #}
+        {% if groups|length > 0 %}
+            {% for group in groups %}
+                <div class="ag-group-card">
+                    <div class="ag-group-header">
+                        <div>
+                            <h3 class="ag-group-title">
+                                {{ 'Duplicate Group #{id}'|t('asset-guardian', { id: group.groupId }) }}
+                                <span class="badge light" style="font-size: 11px;">
+                                    {{ '{count} identical files'|t('asset-guardian', { count: group.assets|length }) }}
+                                </span>
+                            </h3>
+                            <div style="font-size: 12px; color: #64748b; margin-top: 4px;">
+                                <strong>{{ 'Recommended primary:'|t('asset-guardian') }}</strong>
+                                {{ group.recommendationReason }} &bull;
+                                <span>{{ 'Potential saving: {size}'|t('asset-guardian', { size: group.formattedPotential }) }}</span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <span class="badge" style="background: #f1f5f9; color: #475569; font-family: monospace; font-size: 11px;">
+                                MD5: {{ group.hash|slice(0, 12) }}...
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="tableview" style="margin: 0;">
+                        <table class="data fullwidth">
+                            <thead>
+                                <tr>
+                                    <th>{{ 'Filename'|t('asset-guardian') }}</th>
+                                    <th>{{ 'Size'|t('asset-guardian') }}</th>
+                                    <th>{{ 'Volume'|t('asset-guardian') }}</th>
+                                    <th>{{ 'References'|t('asset-guardian') }}</th>
+                                    <th>{{ 'Modified'|t('asset-guardian') }}</th>
+                                    <th>{{ 'Status'|t('asset-guardian') }}</th>
+                                    <th style="text-align: right;">{{ 'Actions'|t('asset-guardian') }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for a in group.assets %}
+                                    <tr style="{{ a.isPrimary ? 'background: #f0fdf4;' : '' }}">
+                                        <td>
+                                            <strong>{{ a.filename }}</strong>
+                                            {% if a.isPrimary %}
+                                                <span class="ag-primary-badge" style="margin-left: 6px;">{{ 'Primary'|t('asset-guardian') }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ a.formattedSize }}</td>
+                                        <td><span class="light">{{ a.volumeName }}</span></td>
+                                        <td>
+                                            <span style="font-weight: 600; color: {{ a.usageCount > 0 ? '#0284c7' : '#94a3b8' }};">
+                                                {{ '{count} references'|t('asset-guardian', { count: a.usageCount }) }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% if a.dateModified %}
+                                                {{ a.dateModified|datetime('short') }}
+                                            {% else %}
+                                                {{ a.dateCreated|datetime('short') }}
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if a.isPrimary %}
+                                                <span style="color: #059669; font-weight: 600; font-size: 12px;">{{ 'Keep (Primary)'|t('asset-guardian') }}</span>
+                                            {% else %}
+                                                <span style="color: #d97706; font-size: 12px;">{{ 'Duplicate Clone'|t('asset-guardian') }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td style="text-align: right;">
+                                            {% if not a.isPrimary %}
+                                                <button type="button"
+                                                        class="btn small ag-repoint-btn"
+                                                        data-source-id="{{ a.assetId }}"
+                                                        data-source-name="{{ a.filename }}"
+                                                        data-target-id="{{ group.primaryId }}">
+                                                    {{ 'Repoint & Trash'|t('asset-guardian') }}
+                                                </button>
+                                            {% else %}
+                                                <span class="light" style="font-size: 12px;">—</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            {% endfor %}
+        {% elseif not latestScan %}
+            <div class="notice notice--info" style="margin: 0; padding: 24px;">
+                <h3 style="margin-top: 0; font-size: 16px; font-weight: 700;">{{ 'No scan performed yet'|t('asset-guardian') }}</h3>
+                <p style="color: #4b5563; margin-bottom: 16px;">
+                    {{ 'Run an asset scan from the Dashboard to discover identical duplicate files.'|t('asset-guardian') }}
+                </p>
+                <a href="{{ cpUrl('asset-guardian/dashboard') }}" class="btn submit">
+                    {{ 'Go to Dashboard'|t('asset-guardian') }}
+                </a>
+            </div>
+        {% else %}
+            <div class="card" style="padding: 32px; text-align: center;">
+                <div style="font-size: 32px; margin-bottom: 12px;">✨</div>
+                <h3 style="margin: 0 0 6px 0; font-size: 18px; font-weight: 700;">
+                    {{ 'No exact duplicate assets found.'|t('asset-guardian') }}
+                </h3>
+                <p class="light" style="margin: 0;">
+                    {{ 'All scanned files across configured volumes have unique cryptographic content hashes.'|t('asset-guardian') }}
+                </p>
+            </div>
+        {% endif %}
+
+    </div>
+
+    {# Repoint Confirmation Modal #}
+    <div id="ag-repoint-modal" class="ag-modal-overlay">
+        <div class="ag-modal-box">
+            <div class="ag-modal-header">
+                <h3 style="margin: 0; font-size: 16px; font-weight: 700;">{{ 'Confirm Duplicate Repointing'|t('asset-guardian') }}</h3>
+                <button type="button" id="ag-repoint-close" class="btn small" style="padding: 2px 8px;">✕</button>
+            </div>
+
+            <form method="post" accept-charset="UTF-8" style="margin: 0;">
+                {{ csrfInput() }}
+                {{ actionInput('asset-guardian/duplicates/repoint') }}
+                <input type="hidden" name="sourceId" id="ag-repoint-source-input" value="">
+                <input type="hidden" name="targetId" id="ag-repoint-target-input" value="">
+
+                <div class="ag-modal-body" id="ag-repoint-body">
+                    <p style="margin: 0; color: #334155;">
+                        {{ 'Asset Guardian will rewrite all content relationships pointing to the source duplicate so they point to the primary asset instead.'|t('asset-guardian') }}
+                    </p>
+
+                    <div style="padding: 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 13px;">
+                        <div><strong>{{ 'Source (Duplicate):'|t('asset-guardian') }}</strong> <span id="ag-repoint-source-name"></span></div>
+                        <div style="margin-top: 6px;"><strong>{{ 'Target (Primary):'|t('asset-guardian') }}</strong> <span id="ag-repoint-target-name"></span></div>
+                    </div>
+
+                    <div class="notice notice--warning" style="margin: 0;">
+                        <p>
+                            <strong>{{ 'Safe Cleanup Notice:'|t('asset-guardian') }}</strong>
+                            {{ 'After repointing is verified, the duplicate file will be safely moved to Craft Trash. It will not be permanently deleted.'|t('asset-guardian') }}
+                        </p>
+                    </div>
+                </div>
+
+                <div class="ag-modal-footer">
+                    <button type="button" id="ag-repoint-cancel" class="btn">{{ 'Cancel'|t('app') }}</button>
+                    <button type="submit" class="btn submit">{{ 'Repoint & Move to Trash'|t('asset-guardian') }}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var modal = document.getElementById('ag-repoint-modal');
+            var closeBtn = document.getElementById('ag-repoint-close');
+            var cancelBtn = document.getElementById('ag-repoint-cancel');
+            var sourceInput = document.getElementById('ag-repoint-source-input');
+            var targetInput = document.getElementById('ag-repoint-target-input');
+            var sourceNameSpan = document.getElementById('ag-repoint-source-name');
+            var targetNameSpan = document.getElementById('ag-repoint-target-name');
+
+            function closeModal() {
+                modal.classList.remove('active');
+            }
+
+            closeBtn.addEventListener('click', closeModal);
+            cancelBtn.addEventListener('click', closeModal);
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) closeModal();
+            });
+
+            document.querySelectorAll('.ag-repoint-btn').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var sId = this.getAttribute('data-source-id');
+                    var sName = this.getAttribute('data-source-name');
+                    var tId = this.getAttribute('data-target-id');
+
+                    sourceInput.value = sId;
+                    targetInput.value = tId;
+                    sourceNameSpan.textContent = sName + ' (#' + sId + ')';
+                    targetNameSpan.textContent = 'Primary Asset (#' + tId + ')';
+
+                    modal.classList.add('active');
+                });
+            });
+        });
+    </script>
+{% endblock %}

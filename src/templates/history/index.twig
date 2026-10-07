@@ -1,0 +1,273 @@
+{% extends "asset-guardian/_layouts/cp" %}
+
+{% set selectedSubnavItem = 'history' %}
+{% set title = 'Scan & Cleanup History'|t('asset-guardian') %}
+
+{% block pageContent %}
+    <style>
+        .ag-history {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Tabs */
+        .ag-tabs {
+            display: flex;
+            gap: 8px;
+            border-bottom: 2px solid #e5e7eb;
+            margin-bottom: 4px;
+        }
+        .ag-tab-btn {
+            padding: 10px 18px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #6b7280;
+            text-decoration: none;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: color 0.15s, border-color 0.15s;
+        }
+        .ag-tab-btn:hover {
+            color: #111827;
+        }
+        .ag-tab-btn.active {
+            color: #0284c7;
+            border-bottom-color: #0284c7;
+        }
+
+        /* Table Card */
+        .ag-table-card {
+            background: #ffffff;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+        .ag-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .ag-table th {
+            background: #f9fafb;
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 1px solid #e5e7eb;
+            white-space: nowrap;
+        }
+        .ag-table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid #f3f4f6;
+            vertical-align: middle;
+        }
+        .ag-table tr:hover td {
+            background: #fafafa;
+        }
+
+        /* Badges */
+        .ag-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .ag-badge-green { background: #dcfce7; color: #166534; }
+        .ag-badge-blue { background: #e0f2fe; color: #0369a1; }
+        .ag-badge-amber { background: #fef3c7; color: #92400e; }
+        .ag-badge-red { background: #fee2e2; color: #991b1b; }
+        .ag-badge-gray { background: #f3f4f6; color: #4b5563; }
+    </style>
+
+    <div class="ag-history">
+        {# Tabs #}
+        <div class="ag-tabs">
+            <a href="{{ cpUrl('asset-guardian/history', { tab: 'scans' }) }}"
+               class="ag-tab-btn {{ activeTab != 'cleanups' ? 'active' : '' }}">
+                {{ 'Library Scans ({count})'|t('asset-guardian', { count: scans|length }) }}
+            </a>
+            <a href="{{ cpUrl('asset-guardian/history', { tab: 'cleanups' }) }}"
+               class="ag-tab-btn {{ activeTab == 'cleanups' ? 'active' : '' }}">
+                {{ 'Cleanup Audit Trail ({count})'|t('asset-guardian', { count: cleanups|length }) }}
+            </a>
+        </div>
+
+        {% if activeTab != 'cleanups' %}
+            {# Scans Table #}
+            <div class="ag-table-card">
+                {% if scans|length == 0 %}
+                    <div style="padding: 48px 24px; text-align: center;">
+                        <div style="font-size: 36px; margin-bottom: 12px;">📊</div>
+                        <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: #111827;">
+                            {{ 'No scans recorded yet'|t('asset-guardian') }}
+                        </h3>
+                        <p style="margin: 6px 0 0; color: #6b7280; font-size: 13px;">
+                            {{ 'Trigger a scan from the Dashboard to record library health snapshots.'|t('asset-guardian') }}
+                        </p>
+                    </div>
+                {% else %}
+                    <table class="ag-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 70px;">{{ 'Scan #'|t('asset-guardian') }}</th>
+                                <th style="width: 170px;">{{ 'Started'|t('asset-guardian') }}</th>
+                                <th style="width: 100px;">{{ 'Duration'|t('asset-guardian') }}</th>
+                                <th style="width: 90px;">{{ 'Score'|t('asset-guardian') }}</th>
+                                <th style="width: 100px;">{{ 'Total Files'|t('asset-guardian') }}</th>
+                                <th>{{ 'Findings Breakdown'|t('asset-guardian') }}</th>
+                                <th style="width: 130px;">{{ 'Recoverable'|t('asset-guardian') }}</th>
+                                <th style="width: 110px; text-align: right;">{{ 'Status'|t('asset-guardian') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for scan in scans %}
+                                <tr>
+                                    <td>
+                                        <strong>#{{ scan.id }}</strong>
+                                    </td>
+                                    <td>
+                                        {{ scan.startedAt|datetime('short') }}
+                                    </td>
+                                    <td>
+                                        {{ scan.duration }}
+                                    </td>
+                                    <td>
+                                        {% if scan.status == 'completed' %}
+                                            {% set scoreClass = scan.healthScore >= 80 ? 'ag-badge-green' : (scan.healthScore >= 60 ? 'ag-badge-amber' : 'ag-badge-red') %}
+                                            <span class="ag-badge {{ scoreClass }}">{{ scan.healthScore }}/100</span>
+                                        {% else %}
+                                            <span style="color: #9ca3af;">—</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {{ scan.totalAssets }}
+                                    </td>
+                                    <td>
+                                        <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                                            <span class="ag-badge ag-badge-amber" title="{{ 'Unused files'|t('asset-guardian') }}">
+                                                {{ scan.unusedCount }} {{ 'Unused'|t('asset-guardian') }}
+                                            </span>
+                                            <span class="ag-badge ag-badge-blue" title="{{ 'Duplicate clones'|t('asset-guardian') }}">
+                                                {{ scan.duplicateCount }} {{ 'Duplicates'|t('asset-guardian') }}
+                                            </span>
+                                            <span class="ag-badge ag-badge-gray" title="{{ 'Large files'|t('asset-guardian') }}">
+                                                {{ scan.largeFileCount }} {{ 'Large'|t('asset-guardian') }}
+                                            </span>
+                                            {% if scan.missingAltCount > 0 %}
+                                                <span class="ag-badge ag-badge-red" title="{{ 'Missing alt text'|t('asset-guardian') }}">
+                                                    {{ scan.missingAltCount }} {{ 'No Alt'|t('asset-guardian') }}
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <strong>{{ scan.formattedRecovery }}</strong>
+                                    </td>
+                                    <td style="text-align: right;">
+                                        {% if scan.status == 'completed' %}
+                                            <span class="ag-badge ag-badge-green">{{ 'Completed'|t('asset-guardian') }}</span>
+                                        {% elseif scan.status == 'running' %}
+                                            <span class="ag-badge ag-badge-blue">{{ 'Running'|t('asset-guardian') }}</span>
+                                        {% elseif scan.status == 'failed' %}
+                                            <span class="ag-badge ag-badge-red" title="{{ scan.errorMessage }}">{{ 'Failed'|t('asset-guardian') }}</span>
+                                        {% else %}
+                                            <span class="ag-badge ag-badge-gray">{{ scan.status|capitalize }}</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% endif %}
+            </div>
+        {% else %}
+            {# Cleanups Table #}
+            <div class="ag-table-card">
+                {% if cleanups|length == 0 %}
+                    <div style="padding: 48px 24px; text-align: center;">
+                        <div style="font-size: 36px; margin-bottom: 12px;">🛡️</div>
+                        <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: #111827;">
+                            {{ 'No cleanup operations performed yet'|t('asset-guardian') }}
+                        </h3>
+                        <p style="margin: 6px 0 0; color: #6b7280; font-size: 13px;">
+                            {{ 'When you clean up unused assets or duplicate clones, an audit trail will appear here.'|t('asset-guardian') }}
+                        </p>
+                    </div>
+                {% else %}
+                    <table class="ag-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 70px;">{{ 'Op #'|t('asset-guardian') }}</th>
+                                <th style="width: 170px;">{{ 'Date & Time'|t('asset-guardian') }}</th>
+                                <th style="width: 150px;">{{ 'Initiated By'|t('asset-guardian') }}</th>
+                                <th style="width: 130px;">{{ 'Type'|t('asset-guardian') }}</th>
+                                <th style="width: 110px;">{{ 'Assets Cleaned'|t('asset-guardian') }}</th>
+                                <th style="width: 130px;">{{ 'Storage Reclaimed'|t('asset-guardian') }}</th>
+                                <th style="width: 110px;">{{ 'Status'|t('asset-guardian') }}</th>
+                                <th style="width: 120px; text-align: right;">{{ 'Action'|t('asset-guardian') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for op in cleanups %}
+                                <tr>
+                                    <td>
+                                        <strong>#{{ op.id }}</strong>
+                                    </td>
+                                    <td>
+                                        {{ op.dateCreated|datetime('short') }}
+                                    </td>
+                                    <td>
+                                        {{ op.user }}
+                                    </td>
+                                    <td>
+                                        {% if op.isSoftDelete %}
+                                            <span class="ag-badge ag-badge-blue">{{ 'Soft Delete (Trash)'|t('asset-guardian') }}</span>
+                                        {% else %}
+                                            <span class="ag-badge ag-badge-red">{{ 'Hard Delete'|t('asset-guardian') }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {{ op.assetCount }} {{ 'assets'|t('asset-guardian') }}
+                                    </td>
+                                    <td>
+                                        <strong style="color: #16a34a;">{{ op.formattedBytes }}</strong>
+                                    </td>
+                                    <td>
+                                        {% if op.status == 'completed' %}
+                                            <span class="ag-badge ag-badge-green">{{ 'Completed'|t('asset-guardian') }}</span>
+                                        {% elseif op.status == 'restored' %}
+                                            <span class="ag-badge ag-badge-gray">{{ 'Restored'|t('asset-guardian') }}</span>
+                                        {% else %}
+                                            <span class="ag-badge ag-badge-amber">{{ op.status|capitalize }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td style="text-align: right;">
+                                        {% if op.canRestore %}
+                                            <form method="post" action="" style="margin: 0; display: inline;">
+                                                {{ csrfInput() }}
+                                                {{ actionInput('asset-guardian/cleanup/restore') }}
+                                                <input type="hidden" name="operationId" value="{{ op.id }}">
+                                                <button type="submit"
+                                                        class="btn small"
+                                                        onclick="return confirm('{{ "Restore all assets from this operation back to your active asset library?"|t("asset-guardian")|e("js") }}');">
+                                                    {{ 'Restore'|t('asset-guardian') }}
+                                                </button>
+                                            </form>
+                                        {% else %}
+                                            <span style="color: #9ca3af; font-size: 12px;">—</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}

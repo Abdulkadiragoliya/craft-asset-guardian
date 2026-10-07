@@ -1,0 +1,545 @@
+{% extends "asset-guardian/_layouts/cp" %}
+
+{% set selectedSubnavItem = 'cleanup' %}
+{% set title = 'Cleanup Center'|t('asset-guardian') %}
+
+{% block pageContent %}
+    <style>
+        .ag-cleanup {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Safety Banner */
+        .ag-safety-banner {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            padding: 18px 22px;
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            color: #1e3a8a;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        .ag-safety-icon {
+            font-size: 24px;
+            flex-shrink: 0;
+            line-height: 1;
+        }
+
+        /* Overview Cards */
+        .ag-stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+        }
+        .ag-stat-card {
+            background: #ffffff;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+        .ag-stat-card .val {
+            font-size: 24px;
+            font-weight: 800;
+            color: #111827;
+            margin-top: 4px;
+        }
+        .ag-stat-card .lbl {
+            font-size: 12px;
+            color: #6b7280;
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        .ag-stat-card .sub {
+            font-size: 12px;
+            color: #059669;
+            margin-top: 4px;
+            font-weight: 500;
+        }
+
+        /* Action Bar */
+        .ag-action-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 16px 20px;
+            background: #ffffff;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            flex-wrap: wrap;
+        }
+        .ag-selection-info {
+            font-size: 14px;
+            font-weight: 600;
+            color: #111827;
+        }
+
+        /* Table */
+        .ag-table-card {
+            background: #ffffff;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+        .ag-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .ag-table th {
+            background: #f9fafb;
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 1px solid #e5e7eb;
+            white-space: nowrap;
+        }
+        .ag-table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid #f3f4f6;
+            vertical-align: middle;
+        }
+        .ag-table tr:hover td {
+            background: #fafafa;
+        }
+
+        .ag-thumb-wrap {
+            width: 44px;
+            height: 44px;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+            background: #f3f4f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        .ag-thumb-wrap img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .ag-file-cell {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .ag-file-name {
+            font-weight: 600;
+            color: #111827;
+            word-break: break-all;
+        }
+        .ag-file-meta {
+            font-size: 11px;
+            color: #6b7280;
+            margin-top: 2px;
+        }
+
+        /* Badges */
+        .ag-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .ag-badge-safe { background: #dcfce7; color: #166534; }
+        .ag-badge-warn { background: #fef3c7; color: #92400e; }
+        .ag-badge-danger { background: #fee2e2; color: #991b1b; }
+        .ag-badge-purple { background: #f3e8ff; color: #6b21a8; }
+        .ag-badge-blue { background: #e0f2fe; color: #0369a1; }
+
+        /* Simulation Modal Backdrop */
+        .ag-modal-backdrop {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .ag-modal {
+            background: #ffffff;
+            border-radius: 8px;
+            max-width: 650px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            padding: 24px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+
+    <div class="ag-cleanup">
+        {# Safety Principle Banner #}
+        <div class="ag-safety-banner">
+            <div class="ag-safety-icon">🛡️</div>
+            <div>
+                <strong>{{ 'Safe Cleanup Guarantee:'|t('asset-guardian') }}</strong>
+                {{ 'All cleanup operations move files safely to Craft CMS Trash (soft delete). Assets can be restored at any time within your Craft retention window. High-risk assets are excluded from default bulk selection.'|t('asset-guardian') }}
+            </div>
+        </div>
+
+        {# Overview Cards #}
+        <div class="ag-stat-grid">
+            <div class="ag-stat-card">
+                <span class="lbl">{{ 'Total Candidates'|t('asset-guardian') }}</span>
+                <span class="val">{{ totalCandidatesCount }}</span>
+                <span class="sub" style="color: #6b7280;">{{ formattedTotalBytes }} {{ 'total recoverable'|t('asset-guardian') }}</span>
+            </div>
+            <div class="ag-stat-card">
+                <span class="lbl">{{ 'Safe To Clean'|t('asset-guardian') }}</span>
+                <span class="val" style="color: #16a34a;">{{ safeCount }}</span>
+                <span class="sub">{{ formattedSafeBytes }} &bull; {{ 'Low risk, 0 relations'|t('asset-guardian') }}</span>
+            </div>
+            <div class="ag-stat-card">
+                <span class="lbl">{{ 'Requires Caution'|t('asset-guardian') }}</span>
+                <span class="val" style="color: #d97706;">{{ warningCount }}</span>
+                <span class="sub" style="color: #d97706;">{{ formattedWarningBytes }} &bull; {{ 'Excluded by default'|t('asset-guardian') }}</span>
+            </div>
+        </div>
+
+        {# Action Toolbar #}
+        <div class="ag-action-bar">
+            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                <button type="button" class="btn small" id="btn-select-safe">
+                    {{ 'Select All Safe ({count})'|t('asset-guardian', { count: safeCount }) }}
+                </button>
+                <button type="button" class="btn small" id="btn-select-all">
+                    {{ 'Select All'|t('asset-guardian') }}
+                </button>
+                <button type="button" class="btn small" id="btn-deselect-all">
+                    {{ 'Deselect All'|t('asset-guardian') }}
+                </button>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+                <div class="ag-selection-info" id="selection-summary">
+                    0 {{ 'assets selected'|t('asset-guardian') }} (0 B)
+                </div>
+                <button type="button" class="btn" id="btn-simulate" disabled>
+                    {{ 'Simulate Dry Run'|t('asset-guardian') }}
+                </button>
+                <button type="button" class="btn submit" id="btn-execute" disabled style="background: #dc2626; border-color: #dc2626;">
+                    {{ 'Move Selected to Trash'|t('asset-guardian') }}
+                </button>
+            </div>
+        </div>
+
+        {# Candidates Table #}
+        <div class="ag-table-card">
+            {% if candidates|length == 0 %}
+                <div style="padding: 48px 24px; text-align: center;">
+                    <div style="font-size: 36px; margin-bottom: 12px;">✨</div>
+                    <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: #111827;">
+                        {{ 'No cleanup candidates found!'|t('asset-guardian') }}
+                    </h3>
+                    <p style="margin: 6px 0 0; color: #6b7280; font-size: 13px;">
+                        {% if not latestScan %}
+                            {{ 'Run a library scan from the Dashboard to discover unused assets and duplicates.'|t('asset-guardian') }}
+                        {% else %}
+                            {{ 'Your asset library is fully clean with zero unreferenced files or duplicate clones.'|t('asset-guardian') }}
+                        {% endif %}
+                    </p>
+                </div>
+            {% else %}
+                <table class="ag-table" id="candidates-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 40px; text-align: center;">
+                                <input type="checkbox" id="master-checkbox">
+                            </th>
+                            <th>{{ 'Asset'|t('asset-guardian') }}</th>
+                            <th style="width: 140px;">{{ 'Volume'|t('asset-guardian') }}</th>
+                            <th style="width: 130px;">{{ 'Candidate Type'|t('asset-guardian') }}</th>
+                            <th style="width: 100px;">{{ 'Size'|t('asset-guardian') }}</th>
+                            <th style="width: 100px;">{{ 'Risk Rating'|t('asset-guardian') }}</th>
+                            <th>{{ 'Reason / Details'|t('asset-guardian') }}</th>
+                            <th style="width: 80px; text-align: right;">{{ 'Action'|t('asset-guardian') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in candidates %}
+                            <tr id="row-{{ item.assetId }}" class="{{ item.isSafe ? 'is-safe' : 'is-warning' }}">
+                                <td style="text-align: center;">
+                                    <input type="checkbox"
+                                           class="candidate-checkbox"
+                                           value="{{ item.assetId }}"
+                                           data-size="{{ item.size }}"
+                                           data-risk="{{ item.risk }}"
+                                           data-filename="{{ item.filename }}"
+                                           {% if item.isSafe %}checked{% endif %}>
+                                </td>
+                                <td>
+                                    <div class="ag-file-cell">
+                                        <div class="ag-thumb-wrap">
+                                            {% if item.thumbUrl %}
+                                                <img src="{{ item.thumbUrl }}" alt="{{ item.filename }}" loading="lazy">
+                                            {% else %}
+                                                <span class="icon" data-icon="{{ item.kind == 'image' ? 'image' : 'file' }}"></span>
+                                            {% endif %}
+                                        </div>
+                                        <div>
+                                            <div class="ag-file-name" title="{{ item.filename }}">
+                                                {{ item.filename }}
+                                            </div>
+                                            <div class="ag-file-meta">
+                                                {{ item.kind|capitalize }} &bull; {{ item.dateCreated|datetime('short') }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="ag-badge" style="background: #f3f4f6; color: #4b5563;">{{ item.volumeName }}</span>
+                                </td>
+                                <td>
+                                    {% if item.type == 'duplicate' %}
+                                        <span class="ag-badge ag-badge-purple">{{ item.typeLabel }}</span>
+                                    {% else %}
+                                        <span class="ag-badge ag-badge-blue">{{ item.typeLabel }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <strong>{{ item.formattedSize }}</strong>
+                                </td>
+                                <td>
+                                    {% if item.risk == 'high' %}
+                                        <span class="ag-badge ag-badge-danger">{{ 'High Risk'|t('asset-guardian') }}</span>
+                                    {% elseif item.risk == 'medium' %}
+                                        <span class="ag-badge ag-badge-warn">{{ 'Medium Risk'|t('asset-guardian') }}</span>
+                                    {% else %}
+                                        <span class="ag-badge ag-badge-safe">{{ 'Low Risk'|t('asset-guardian') }}</span>
+                                    {% endif %}
+                                </td>
+                                <td style="color: #4b5563; font-size: 12px;">
+                                    {{ item.reason }}
+                                </td>
+                                <td style="text-align: right;">
+                                    <a href="{{ item.editUrl }}"
+                                       class="btn small"
+                                       target="_blank"
+                                       rel="noopener">
+                                        {{ 'Inspect'|t('asset-guardian') }}
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+        </div>
+    </div>
+
+    {# Dry Run Modal #}
+    <div class="ag-modal-backdrop" id="sim-modal">
+        <div class="ag-modal">
+            <h3 style="margin-top: 0; font-size: 18px; font-weight: 700; color: #111827;">
+                {{ 'Dry Run Cleanup Simulation'|t('asset-guardian') }}
+            </h3>
+            <p style="color: #6b7280; font-size: 13px;">
+                {{ 'Simulation results for your selected assets. No changes have been applied.'|t('asset-guardian') }}
+            </p>
+
+            <div id="sim-content" style="margin: 16px 0; font-size: 13px;">
+                <!-- Filled via JS -->
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                <button type="button" class="btn" onclick="document.getElementById('sim-modal').style.display='none'">
+                    {{ 'Close'|t('asset-guardian') }}
+                </button>
+            </div>
+        </div>
+    </div>
+
+    {# Interactive JS for Selection, Simulation, and Safe Deletion #}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var checkboxes = document.querySelectorAll('.candidate-checkbox');
+            var masterCheckbox = document.getElementById('master-checkbox');
+            var selectionSummary = document.getElementById('selection-summary');
+            var btnSimulate = document.getElementById('btn-simulate');
+            var btnExecute = document.getElementById('btn-execute');
+
+            function formatBytes(bytes) {
+                if (bytes === 0) return '0 B';
+                var k = 1024;
+                var sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+                var i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+
+            function updateSelection() {
+                var selectedCount = 0;
+                var totalBytes = 0;
+                var allChecked = true;
+
+                checkboxes.forEach(function(cb) {
+                    if (cb.checked) {
+                        selectedCount++;
+                        totalBytes += parseInt(cb.getAttribute('data-size') || '0', 10);
+                    } else {
+                        allChecked = false;
+                    }
+                });
+
+                if (masterCheckbox) {
+                    masterCheckbox.checked = (selectedCount > 0 && allChecked);
+                }
+
+                if (selectionSummary) {
+                    selectionSummary.textContent = selectedCount + ' {{ "assets selected"|t("asset-guardian")|e("js") }} (' + formatBytes(totalBytes) + ')';
+                }
+
+                var hasSelected = (selectedCount > 0);
+                if (btnSimulate) btnSimulate.disabled = !hasSelected;
+                if (btnExecute) btnExecute.disabled = !hasSelected;
+            }
+
+            // Initial calculation
+            updateSelection();
+
+            // Event listeners
+            if (masterCheckbox) {
+                masterCheckbox.addEventListener('change', function() {
+                    var isChecked = this.checked;
+                    checkboxes.forEach(function(cb) { cb.checked = isChecked; });
+                    updateSelection();
+                });
+            }
+
+            checkboxes.forEach(function(cb) {
+                cb.addEventListener('change', updateSelection);
+            });
+
+            document.getElementById('btn-select-safe').addEventListener('click', function() {
+                checkboxes.forEach(function(cb) {
+                    cb.checked = (cb.getAttribute('data-risk') === 'low');
+                });
+                updateSelection();
+            });
+
+            document.getElementById('btn-select-all').addEventListener('click', function() {
+                checkboxes.forEach(function(cb) { cb.checked = true; });
+                updateSelection();
+            });
+
+            document.getElementById('btn-deselect-all').addEventListener('click', function() {
+                checkboxes.forEach(function(cb) { cb.checked = false; });
+                updateSelection();
+            });
+
+            // Dry Run Simulation
+            if (btnSimulate) {
+                btnSimulate.addEventListener('click', function() {
+                    var selectedIds = [];
+                    checkboxes.forEach(function(cb) {
+                        if (cb.checked) selectedIds.push(cb.value);
+                    });
+
+                    if (selectedIds.length === 0) return;
+
+                    btnSimulate.disabled = true;
+                    btnSimulate.textContent = '{{ "Simulating..."|t("asset-guardian")|e("js") }}';
+
+                    var data = {
+                        action: 'asset-guardian/cleanup/simulate',
+                        assetIds: selectedIds
+                    };
+                    data[Craft.csrfTokenName] = Craft.csrfTokenValue;
+
+                    Craft.sendActionRequest('POST', 'asset-guardian/cleanup/simulate', { data: data })
+                        .then(function(res) {
+                            btnSimulate.disabled = false;
+                            btnSimulate.textContent = '{{ "Simulate Dry Run"|t("asset-guardian")|e("js") }}';
+
+                            var d = res.data.data;
+                            var html = '<div style="background: #f9fafb; padding: 14px; border-radius: 6px; margin-bottom: 14px;">' +
+                                '<div><strong>Total Selected:</strong> ' + d.totalSelected + ' assets</div>' +
+                                '<div><strong>Safe to Trash (0 relations):</strong> ' + d.safeCount + '</div>' +
+                                '<div><strong>Caution/Warnings:</strong> ' + d.warningCount + '</div>' +
+                                '<div><strong>Recoverable Footprint:</strong> ' + d.formattedBytes + '</div>' +
+                                '</div>' +
+                                '<div style="max-height: 250px; overflow-y: auto;">' +
+                                '<table class="ag-table" style="font-size: 12px;">' +
+                                '<thead><tr><th>Asset</th><th>Size</th><th>Risk</th><th>Status</th></tr></thead><tbody>';
+
+                            d.items.forEach(function(item) {
+                                html += '<tr><td>' + item.filename + '</td><td>' + item.formattedSize + '</td><td>' + item.risk + '</td><td>' + (item.canSafelyTrash ? 'Safe' : 'Caution') + '</td></tr>';
+                            });
+                            html += '</tbody></table></div>';
+
+                            document.getElementById('sim-content').innerHTML = html;
+                            document.getElementById('sim-modal').style.display = 'flex';
+                        })
+                        .catch(function(err) {
+                            btnSimulate.disabled = false;
+                            btnSimulate.textContent = '{{ "Simulate Dry Run"|t("asset-guardian")|e("js") }}';
+                            Craft.cp.displayError('{{ "Simulation failed."|t("asset-guardian")|e("js") }}');
+                        });
+                });
+            }
+
+            // Execute Cleanup
+            if (btnExecute) {
+                btnExecute.addEventListener('click', function() {
+                    var selectedIds = [];
+                    checkboxes.forEach(function(cb) {
+                        if (cb.checked) selectedIds.push(cb.value);
+                    });
+
+                    if (selectedIds.length === 0) return;
+
+                    var confirmMsg = '{{ "Are you sure you want to move {count} selected assets to Craft Trash? They can be restored from Craft Trash or Asset Guardian History."|t("asset-guardian")|e("js") }}';
+                    confirmMsg = confirmMsg.replace('{count}', selectedIds.length);
+
+                    if (!confirm(confirmMsg)) return;
+
+                    btnExecute.disabled = true;
+                    btnExecute.textContent = '{{ "Moving to Trash..."|t("asset-guardian")|e("js") }}';
+
+                    var data = {
+                        action: 'asset-guardian/cleanup/execute',
+                        assetIds: selectedIds
+                    };
+                    data[Craft.csrfTokenName] = Craft.csrfTokenValue;
+
+                    Craft.sendActionRequest('POST', 'asset-guardian/cleanup/execute', { data: data })
+                        .then(function(res) {
+                            Craft.cp.displayNotice(res.data.message || '{{ "Cleanup operation completed."|t("asset-guardian")|e("js") }}');
+                            setTimeout(function() {
+                                window.location.reload();
+                            }, 1000);
+                        })
+                        .catch(function(err) {
+                            btnExecute.disabled = false;
+                            btnExecute.textContent = '{{ "Move Selected to Trash"|t("asset-guardian")|e("js") }}';
+                            var msg = err.response && err.response.data && err.response.data.message
+                                ? err.response.data.message
+                                : '{{ "Failed to execute cleanup."|t("asset-guardian")|e("js") }}';
+                            Craft.cp.displayError(msg);
+                        });
+                });
+            }
+        });
+    </script>
+{% endblock %}

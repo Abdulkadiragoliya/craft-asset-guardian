@@ -1,0 +1,538 @@
+{% extends "asset-guardian/_layouts/cp" %}
+
+{% set selectedSubnavItem = 'unused' %}
+{% set title = 'Unused Assets'|t('asset-guardian') %}
+
+{% block pageContent %}
+    <style>
+        .ag-page {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .ag-page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 16px;
+            padding: 20px 24px;
+            background: var(--card-bg, #fff);
+            border-radius: var(--border-radius, 8px);
+            border: 1px solid var(--border-color, #e5e7eb);
+        }
+        .ag-page-header h1 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-color, #111827);
+        }
+        .ag-page-header p {
+            margin: 4px 0 0 0;
+            font-size: 13px;
+            color: #6b7280;
+        }
+        .ag-summary-pills {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .ag-summary-pill {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+        .ag-summary-pill strong {
+            color: #0f172a;
+            font-weight: 700;
+        }
+
+        /* Filter Toolbar */
+        .ag-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            padding: 16px 20px;
+            background: var(--card-bg, #fff);
+            border-radius: var(--border-radius, 8px);
+            border: 1px solid var(--border-color, #e5e7eb);
+        }
+        .ag-filters-form {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 0;
+            width: 100%;
+        }
+        .ag-filter-select, .ag-filter-input {
+            padding: 6px 12px;
+            font-size: 13px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            background: #fff;
+            color: #1e293b;
+        }
+        .ag-filter-input {
+            min-width: 200px;
+        }
+
+        /* Risk Badges */
+        .ag-risk-low {
+            background: #ecfdf5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .ag-risk-medium {
+            background: #fffbeb;
+            color: #92400e;
+            border: 1px solid #fde68a;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .ag-risk-high {
+            background: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        /* Modal / Detail Drawer */
+        .ag-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(2px);
+            z-index: 1200;
+            align-items: center;
+            justify-content: center;
+        }
+        .ag-modal-overlay.active {
+            display: flex;
+        }
+        .ag-modal-box {
+            background: #fff;
+            width: 90%;
+            max-width: 640px;
+            border-radius: 10px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            max-height: 90vh;
+        }
+        .ag-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 24px;
+            border-bottom: 1px solid #e2e8f0;
+            background: #f8fafc;
+        }
+        .ag-modal-body {
+            padding: 24px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .ag-modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid #e2e8f0;
+            background: #f8fafc;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        .ag-check-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            padding: 14px;
+            background: #f1f5f9;
+            border-radius: 6px;
+            font-size: 12px;
+        }
+        .ag-check-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #334155;
+        }
+        .ag-check-icon {
+            color: #10b981;
+            font-weight: bold;
+        }
+    </style>
+
+    <div class="ag-page">
+
+        {# Page Header #}
+        <div class="ag-page-header">
+            <div>
+                <h1>{{ 'Unused Assets'|t('asset-guardian') }}</h1>
+                <p>{{ 'Usage detection is based on supported Craft references across entries, matrix blocks, fields, and relations.'|t('asset-guardian') }}</p>
+            </div>
+
+            <div class="ag-summary-pills">
+                <div class="ag-summary-pill">
+                    <span>{{ 'Unused candidates:'|t('asset-guardian') }}</span>
+                    <strong>{{ totalUnusedCount|number }}</strong>
+                </div>
+                <div class="ag-summary-pill">
+                    <span>{{ 'Potential recovery:'|t('asset-guardian') }}</span>
+                    <strong style="color: #059669;">{{ formattedPotentialBytes }}</strong>
+                </div>
+            </div>
+        </div>
+
+        {# Empty States: No Scan Ever #}
+        {% if not latestScan %}
+            <div class="notice notice--info" style="margin: 0; padding: 24px;">
+                <h3 style="margin-top: 0; font-size: 16px; font-weight: 700;">{{ 'No scan performed yet'|t('asset-guardian') }}</h3>
+                <p style="color: #4b5563; margin-bottom: 16px;">
+                    {{ 'Asset Guardian discovers unreferenced assets by running an asynchronous scan across all volume assets.'|t('asset-guardian') }}
+                </p>
+                <a href="{{ cpUrl('asset-guardian/dashboard') }}" class="btn submit">
+                    {{ 'Go to Dashboard & Run Scan'|t('asset-guardian') }}
+                </a>
+            </div>
+        {% else %}
+
+            {# Filter & Search Toolbar #}
+            <div class="ag-toolbar">
+                <form method="get" class="ag-filters-form">
+                    {# Search #}
+                    <input type="text"
+                           name="search"
+                           placeholder="{{ 'Search filename...'|t('asset-guardian') }}"
+                           value="{{ currentFilters.search }}"
+                           class="ag-filter-input">
+
+                    {# Volume filter #}
+                    <select name="volume" class="ag-filter-select">
+                        <option value="">{{ 'All Volumes'|t('asset-guardian') }}</option>
+                        {% for v in volumes %}
+                            <option value="{{ v.handle }}" {{ currentFilters.volume == v.handle ? 'selected' : '' }}>
+                                {{ v.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+
+                    {# Risk filter #}
+                    <select name="risk" class="ag-filter-select">
+                        <option value="">{{ 'All Risk Levels'|t('asset-guardian') }}</option>
+                        <option value="low" {{ currentFilters.risk == 'low' ? 'selected' : '' }}>{{ 'Low Risk (Safe to review)'|t('asset-guardian') }}</option>
+                        <option value="medium" {{ currentFilters.risk == 'medium' ? 'selected' : '' }}>{{ 'Medium Risk (Review required)'|t('asset-guardian') }}</option>
+                        <option value="high" {{ currentFilters.risk == 'high' ? 'selected' : '' }}>{{ 'High Risk (In use)'|t('asset-guardian') }}</option>
+                    </select>
+
+                    {# Kind filter #}
+                    <select name="kind" class="ag-filter-select">
+                        <option value="">{{ 'All File Kinds'|t('asset-guardian') }}</option>
+                        <option value="image" {{ currentFilters.kind == 'image' ? 'selected' : '' }}>{{ 'Images'|t('asset-guardian') }}</option>
+                        <option value="pdf" {{ currentFilters.kind == 'pdf' ? 'selected' : '' }}>{{ 'PDF Documents'|t('asset-guardian') }}</option>
+                        <option value="video" {{ currentFilters.kind == 'video' ? 'selected' : '' }}>{{ 'Videos'|t('asset-guardian') }}</option>
+                        <option value="audio" {{ currentFilters.kind == 'audio' ? 'selected' : '' }}>{{ 'Audio'|t('asset-guardian') }}</option>
+                    </select>
+
+                    {# Sort filter #}
+                    <select name="sort" class="ag-filter-select">
+                        <option value="size_desc" {{ currentFilters.sort == 'size_desc' ? 'selected' : '' }}>{{ 'Size (Largest first)'|t('asset-guardian') }}</option>
+                        <option value="size_asc" {{ currentFilters.sort == 'size_asc' ? 'selected' : '' }}>{{ 'Size (Smallest first)'|t('asset-guardian') }}</option>
+                        <option value="date_desc" {{ currentFilters.sort == 'date_desc' ? 'selected' : '' }}>{{ 'Modified (Newest)'|t('asset-guardian') }}</option>
+                        <option value="date_asc" {{ currentFilters.sort == 'date_asc' ? 'selected' : '' }}>{{ 'Modified (Oldest)'|t('asset-guardian') }}</option>
+                        <option value="name_asc" {{ currentFilters.sort == 'name_asc' ? 'selected' : '' }}>{{ 'Filename (A-Z)'|t('asset-guardian') }}</option>
+                    </select>
+
+                    <button type="submit" class="btn small">{{ 'Filter'|t('app') }}</button>
+
+                    {% if currentFilters.search or currentFilters.volume or currentFilters.risk or currentFilters.kind %}
+                        <a href="{{ cpUrl('asset-guardian/unused') }}" class="btn small light">
+                            {{ 'Reset'|t('asset-guardian') }}
+                        </a>
+                    {% endif %}
+                </form>
+            </div>
+
+            {# Table of Unused Candidates #}
+            {% if items|length > 0 %}
+                <div class="card" style="padding: 0; overflow: hidden;">
+                    <div class="tableview">
+                        <table class="data fullwidth">
+                            <thead>
+                                <tr>
+                                    <th style="width: 44px;"></th>
+                                    <th>{{ 'Filename'|t('asset-guardian') }}</th>
+                                    <th>{{ 'Size'|t('asset-guardian') }}</th>
+                                    <th>{{ 'Volume'|t('asset-guardian') }}</th>
+                                    <th>{{ 'Modified'|t('asset-guardian') }}</th>
+                                    <th>{{ 'Usage'|t('asset-guardian') }}</th>
+                                    <th>{{ 'Risk Level'|t('asset-guardian') }}</th>
+                                    <th style="text-align: right;">{{ 'Actions'|t('asset-guardian') }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in items %}
+                                    <tr>
+                                        {# Kind Icon / Thumbnail #}
+                                        <td style="text-align: center;">
+                                            {% if item.kind == 'image' %}
+                                                <span class="icon" style="color: #0284c7;" title="{{ item.kind }}">🖼️</span>
+                                            {% elseif item.kind == 'pdf' or item.kind == 'document' %}
+                                                <span class="icon" style="color: #ef4444;" title="{{ item.kind }}">📄</span>
+                                            {% elseif item.kind == 'video' %}
+                                                <span class="icon" style="color: #8b5cf6;" title="{{ item.kind }}">🎬</span>
+                                            {% else %}
+                                                <span class="icon" style="color: #64748b;" title="{{ item.kind }}">📁</span>
+                                            {% endif %}
+                                        </td>
+
+                                        {# Filename #}
+                                        <td>
+                                            <a href="#" class="ag-inspect-trigger" data-asset-id="{{ item.assetId }}" style="font-weight: 600;">
+                                                {{ item.filename }}
+                                            </a>
+                                        </td>
+
+                                        {# Size #}
+                                        <td>{{ item.formattedSize }}</td>
+
+                                        {# Volume #}
+                                        <td>
+                                            <span class="light">{{ item.volumeName }}</span>
+                                        </td>
+
+                                        {# Modified #}
+                                        <td>
+                                            {% if item.dateModified %}
+                                                {{ item.dateModified|datetime('short') }}
+                                            {% else %}
+                                                {{ item.dateCreated|datetime('short') }}
+                                            {% endif %}
+                                        </td>
+
+                                        {# Usage references #}
+                                        <td>
+                                            <span class="light">{{ '0 references'|t('asset-guardian') }}</span>
+                                        </td>
+
+                                        {# Risk Badge #}
+                                        <td>
+                                            {% if item.risk == 'low' %}
+                                                <span class="ag-risk-low" title="{{ 'No supported references found'|t('asset-guardian') }}">
+                                                    {{ 'Low Risk'|t('asset-guardian') }}
+                                                </span>
+                                            {% elseif item.risk == 'medium' %}
+                                                <span class="ag-risk-medium" title="{{ 'Uploaded recently or non-standard reference pattern'|t('asset-guardian') }}">
+                                                    {{ 'Review Req.'|t('asset-guardian') }}
+                                                </span>
+                                            {% else %}
+                                                <span class="ag-risk-high" title="{{ 'Active references detected'|t('asset-guardian') }}">
+                                                    {{ 'High Risk'|t('asset-guardian') }}
+                                                </span>
+                                            {% endif %}
+                                        </td>
+
+                                        {# Actions #}
+                                        <td style="text-align: right;">
+                                            <button type="button" class="btn small ag-inspect-trigger" data-asset-id="{{ item.assetId }}">
+                                                {{ 'Inspect'|t('asset-guardian') }}
+                                            </button>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                {# Server-side Pagination #}
+                {% if pagination.totalPages > 1 %}
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0;">
+                        <span class="light" style="font-size: 13px;">
+                            {{ 'Showing page {page} of {total} ({items} items)'|t('asset-guardian', { page: pagination.page, total: pagination.totalPages, items: pagination.totalItems }) }}
+                        </span>
+
+                        <div style="display: flex; gap: 8px;">
+                            {% if pagination.page > 1 %}
+                                <a href="{{ cpUrl('asset-guardian/unused', currentFilters|merge({ page: pagination.page - 1 })) }}" class="btn small">
+                                    {{ 'Previous'|t('app') }}
+                                </a>
+                            {% endif %}
+
+                            {% if pagination.page < pagination.totalPages %}
+                                <a href="{{ cpUrl('asset-guardian/unused', currentFilters|merge({ page: pagination.page + 1 })) }}" class="btn small">
+                                    {{ 'Next'|t('app') }}
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endif %}
+
+            {% elseif totalUnusedCount == 0 %}
+                {# Clean State: No unused assets detected #}
+                <div class="card" style="padding: 32px; text-align: center;">
+                    <div style="font-size: 32px; margin-bottom: 12px;">🎉</div>
+                    <h3 style="margin: 0 0 6px 0; font-size: 18px; font-weight: 700;">
+                        {{ 'Great! No unused assets were found.'|t('asset-guardian') }}
+                    </h3>
+                    <p class="light" style="margin: 0;">
+                        {{ 'Every indexed asset in your configured volumes has supported content relations.'|t('asset-guardian') }}
+                    </p>
+                </div>
+            {% else %}
+                {# Filtered zero-state #}
+                <div class="card" style="padding: 32px; text-align: center;">
+                    <h3 style="margin: 0 0 8px 0; font-size: 16px;">
+                        {{ 'No unused assets match your current filter criteria.'|t('asset-guardian') }}
+                    </h3>
+                    <a href="{{ cpUrl('asset-guardian/unused') }}" class="btn small">
+                        {{ 'Reset Filters'|t('asset-guardian') }}
+                    </a>
+                </div>
+            {% endif %}
+
+        {% endif %}
+
+    </div>
+
+    {# Interactive Detail / Inspection Modal #}
+    <div id="ag-asset-modal" class="ag-modal-overlay">
+        <div class="ag-modal-box">
+            <div class="ag-modal-header">
+                <h3 id="ag-modal-title" style="margin: 0; font-size: 16px; font-weight: 700;">{{ 'Asset Detail Analysis'|t('asset-guardian') }}</h3>
+                <button type="button" id="ag-modal-close" class="btn small" style="padding: 2px 8px;">✕</button>
+            </div>
+
+            <div class="ag-modal-body" id="ag-modal-content">
+                <div style="text-align: center; padding: 20px;">
+                    <span class="spinner"></span> {{ 'Loading asset usage analysis...'|t('asset-guardian') }}
+                </div>
+            </div>
+
+            <div class="ag-modal-footer">
+                <a href="#" id="ag-modal-open-link" target="_blank" class="btn">
+                    {{ 'Open in Assets'|t('asset-guardian') }}
+                </a>
+                <button type="button" id="ag-modal-dismiss" class="btn submit">
+                    {{ 'Done'|t('app') }}
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var modal = document.getElementById('ag-asset-modal');
+            var modalContent = document.getElementById('ag-modal-content');
+            var modalTitle = document.getElementById('ag-modal-title');
+            var openLink = document.getElementById('ag-modal-open-link');
+            var closeBtn = document.getElementById('ag-modal-close');
+            var dismissBtn = document.getElementById('ag-modal-dismiss');
+
+            function closeModal() {
+                modal.classList.remove('active');
+            }
+
+            closeBtn.addEventListener('click', closeModal);
+            dismissBtn.addEventListener('click', closeModal);
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) closeModal();
+            });
+
+            document.querySelectorAll('.ag-inspect-trigger').forEach(function(el) {
+                el.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    var assetId = this.getAttribute('data-asset-id');
+                    if (!assetId) return;
+
+                    modal.classList.add('active');
+                    modalContent.innerHTML = '<div style="text-align: center; padding: 24px;"><span class="spinner"></span> Analyzing Craft relations...</div>';
+
+                    fetch(Craft.getUrl('asset-guardian/unused/detail', { assetId: assetId }))
+                        .then(function(res) { return res.json(); })
+                        .then(function(data) {
+                            if (!data.success) {
+                                modalContent.innerHTML = '<p class="error">Failed to load asset analysis.</p>';
+                                return;
+                            }
+
+                            var a = data.asset;
+                            modalTitle.textContent = a.filename;
+                            openLink.href = a.cpEditUrl || '#';
+
+                            var riskClass = 'ag-risk-' + data.risk;
+                            var riskLabel = data.risk.toUpperCase();
+
+                            var html = '';
+                            html += '<div style="display: flex; gap: 20px; align-items: flex-start;">';
+                            if (a.kind === 'image' && a.url) {
+                                html += '<img src="' + a.url + '" style="width: 100px; height: 100px; object-fit: cover; border-radius: 6px; border: 1px solid #e2e8f0;">';
+                            }
+                            html += '<div style="flex: 1; font-size: 13px; line-height: 1.6;">';
+                            html += '<div><strong>Size:</strong> ' + a.formattedSize + '</div>';
+                            html += '<div><strong>Volume:</strong> ' + a.volumeName + '</div>';
+                            if (a.width && a.height) {
+                                html += '<div><strong>Dimensions:</strong> ' + a.width + ' × ' + a.height + ' px</div>';
+                            }
+                            html += '<div><strong>Modified:</strong> ' + (a.dateModified || '—') + '</div>';
+                            html += '<div style="margin-top: 6px;"><span class="' + riskClass + '">' + riskLabel + ' RISK</span></div>';
+                            html += '</div></div>';
+
+                            html += '<div><h4 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 700;">Usage Analysis Checklist</h4>';
+                            html += '<div class="ag-check-grid">';
+                            html += '<div class="ag-check-item"><span class="ag-check-icon">✓</span> Asset fields</div>';
+                            html += '<div class="ag-check-item"><span class="ag-check-icon">✓</span> Matrix / nested content</div>';
+                            html += '<div class="ag-check-item"><span class="ag-check-icon">✓</span> CKEditor content</div>';
+                            html += '<div class="ag-check-item"><span class="ag-check-icon">✓</span> Redactor content</div>';
+                            html += '<div class="ag-check-item"><span class="ag-check-icon">✓</span> Global sets</div>';
+                            html += '<div class="ag-check-item"><span class="ag-check-icon">✓</span> Categories & Users</div>';
+                            html += '</div></div>';
+
+                            html += '<div style="padding: 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;">';
+                            html += '<div style="font-size: 13px; font-weight: 700; margin-bottom: 4px;">Recommendation</div>';
+                            html += '<div style="font-size: 13px; color: #475569;">' + data.recommendation + '</div>';
+                            html += '</div>';
+
+                            if (data.usage.sources && data.usage.sources.length > 0) {
+                                html += '<div><h4 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 700;">Referenced In (' + data.usage.referenceCount + ')</h4>';
+                                html += '<ul style="margin: 0 0 0 16px; font-size: 13px;">';
+                                data.usage.sources.forEach(function(s) {
+                                    html += '<li>' + s.title + ' (' + s.type + ')</li>';
+                                });
+                                html += '</ul></div>';
+                            } else {
+                                html += '<div style="font-size: 13px; color: #64748b;"><strong>References found:</strong> 0</div>';
+                            }
+
+                            modalContent.innerHTML = html;
+                        })
+                        .catch(function(err) {
+                            modalContent.innerHTML = '<p class="error">Error loading asset details.</p>';
+                        });
+                });
+            });
+        });
+    </script>
+{% endblock %}

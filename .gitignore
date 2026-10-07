@@ -1,0 +1,31 @@
+# Composer dependencies
+/vendor/
+/composer.lock
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE & Editors
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# PHPUnit & Testing
+.phpunit.cache/
+.phpunit.result.cache
+/coverage/
+
+# Logs & Temporary files
+*.log
+*.tmp
+
+# Packaging / Distribution Archives
+*.zip
+*.tar.gz

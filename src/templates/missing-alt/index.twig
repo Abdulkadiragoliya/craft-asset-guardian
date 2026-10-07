@@ -1,0 +1,505 @@
+{% extends "asset-guardian/_layouts/cp" %}
+
+{% set selectedSubnavItem = 'missing-alt' %}
+{% set title = 'Missing Alt Text'|t('asset-guardian') %}
+
+{% block pageContent %}
+    <style>
+        .ag-missing-alt {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Metric Banner */
+        .ag-compliance-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+            padding: 24px;
+            background: #ffffff;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            flex-wrap: wrap;
+        }
+        .ag-compliance-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .ag-compliance-gauge {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 20px;
+            flex-shrink: 0;
+            border: 4px solid;
+        }
+        .ag-gauge-green {
+            background: #f0fdf4;
+            color: #166534;
+            border-color: #22c55e;
+        }
+        .ag-gauge-amber {
+            background: #fffbeb;
+            color: #92400e;
+            border-color: #f59e0b;
+        }
+        .ag-gauge-red {
+            background: #fef2f2;
+            color: #991b1b;
+            border-color: #ef4444;
+        }
+        .ag-compliance-gauge small {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .ag-compliance-stats {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+        .ag-stat-box {
+            display: flex;
+            flex-direction: column;
+        }
+        .ag-stat-box .num {
+            font-size: 20px;
+            font-weight: 700;
+            color: #111827;
+        }
+        .ag-stat-box .lbl {
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        /* Filter Toolbar */
+        .ag-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 16px 20px;
+            background: #ffffff;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            flex-wrap: wrap;
+        }
+        .ag-filter-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        /* Table Styles */
+        .ag-table-card {
+            background: #ffffff;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+        .ag-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .ag-table th {
+            background: #f9fafb;
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 1px solid #e5e7eb;
+            white-space: nowrap;
+        }
+        .ag-table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid #f3f4f6;
+            vertical-align: middle;
+        }
+        .ag-table tr:hover td {
+            background: #fafafa;
+        }
+        .ag-thumb-wrap {
+            width: 52px;
+            height: 52px;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+            background: #f3f4f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        .ag-thumb-wrap img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .ag-file-info {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .ag-file-title {
+            font-weight: 600;
+            color: #111827;
+            word-break: break-all;
+        }
+        .ag-file-meta {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 2px;
+        }
+
+        /* Inline Alt Input */
+        .ag-inline-alt {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 300px;
+        }
+        .ag-alt-input {
+            width: 100%;
+            padding: 7px 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 13px;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        .ag-alt-input:focus {
+            border-color: #0284c7;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.2);
+        }
+        .ag-alt-save-btn {
+            padding: 7px 14px;
+            background: #0284c7;
+            color: #ffffff;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background 0.15s;
+        }
+        .ag-alt-save-btn:hover {
+            background: #0369a1;
+        }
+        .ag-alt-save-btn.saving {
+            opacity: 0.6;
+            cursor: wait;
+        }
+
+        /* Badges */
+        .ag-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .ag-badge-critical {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .ag-badge-neutral {
+            background: #f3f4f6;
+            color: #4b5563;
+        }
+
+        /* Pagination */
+        .ag-pagination {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border-top: 1px solid #e5e7eb;
+            background: #fafafa;
+        }
+    </style>
+
+    <div class="ag-missing-alt">
+        {# Compliance Metrics Banner #}
+        <div class="ag-compliance-card">
+            <div class="ag-compliance-left">
+                {% set gaugeClass = complianceRate >= 90 ? 'ag-gauge-green' : (complianceRate >= 65 ? 'ag-gauge-amber' : 'ag-gauge-red') %}
+                <div class="ag-compliance-gauge {{ gaugeClass }}">
+                    {{ complianceRate }}%
+                    <small>{{ 'Compliant'|t('asset-guardian') }}</small>
+                </div>
+                <div>
+                    <h2 style="margin: 0; font-size: 18px; font-weight: 700; color: #111827;">
+                        {{ 'Image Accessibility Center'|t('asset-guardian') }}
+                    </h2>
+                    <p style="margin: 4px 0 0; font-size: 13px; color: #6b7280;">
+                        {{ 'Ensure all site images include meaningful alternative text for screen readers, SEO, and regulatory compliance.'|t('asset-guardian') }}
+                    </p>
+                </div>
+            </div>
+
+            <div class="ag-compliance-stats">
+                <div class="ag-stat-box">
+                    <span class="num">{{ globalMissingCount }}</span>
+                    <span class="lbl">{{ 'Missing Alt'|t('asset-guardian') }}</span>
+                </div>
+                <div class="ag-stat-box">
+                    <span class="num">{{ totalImagesCount - globalMissingCount }}</span>
+                    <span class="lbl">{{ 'With Alt'|t('asset-guardian') }}</span>
+                </div>
+                <div class="ag-stat-box">
+                    <span class="num">{{ totalImagesCount }}</span>
+                    <span class="lbl">{{ 'Total Images'|t('asset-guardian') }}</span>
+                </div>
+            </div>
+        </div>
+
+        {# Filter & Search Toolbar #}
+        <form method="get" class="ag-toolbar">
+            <div class="ag-filter-group">
+                <div class="select">
+                    <select name="volume" onchange="this.form.submit()">
+                        <option value="">{{ 'All Volumes'|t('asset-guardian') }}</option>
+                        {% for vol in volumes %}
+                            <option value="{{ vol.handle }}" {% if activeVolume == vol.handle %}selected{% endif %}>
+                                {{ vol.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="select">
+                    <select name="sort" onchange="this.form.submit()">
+                        <option value="date_desc" {% if activeSort == 'date_desc' %}selected{% endif %}>{{ 'Newest First'|t('asset-guardian') }}</option>
+                        <option value="date_asc" {% if activeSort == 'date_asc' %}selected{% endif %}>{{ 'Oldest First'|t('asset-guardian') }}</option>
+                        <option value="name_asc" {% if activeSort == 'name_asc' %}selected{% endif %}>{{ 'Filename (A-Z)'|t('asset-guardian') }}</option>
+                        <option value="name_desc" {% if activeSort == 'name_desc' %}selected{% endif %}>{{ 'Filename (Z-A)'|t('asset-guardian') }}</option>
+                        <option value="size_desc" {% if activeSort == 'size_desc' %}selected{% endif %}>{{ 'Largest Size'|t('asset-guardian') }}</option>
+                        <option value="size_asc" {% if activeSort == 'size_asc' %}selected{% endif %}>{{ 'Smallest Size'|t('asset-guardian') }}</option>
+                    </select>
+                </div>
+
+                <div class="texticon search icon">
+                    <input type="text"
+                           name="search"
+                           value="{{ activeSearch }}"
+                           class="text"
+                           placeholder="{{ 'Search images by filename...'|t('asset-guardian') }}"
+                           autocomplete="off">
+                </div>
+
+                <button type="submit" class="btn">{{ 'Filter'|t('asset-guardian') }}</button>
+
+                {% if activeVolume or activeSearch or activeSort != 'date_desc' %}
+                    <a href="{{ cpUrl('asset-guardian/missing-alt') }}" class="btn">{{ 'Reset'|t('asset-guardian') }}</a>
+                {% endif %}
+            </div>
+
+            <div style="font-size: 13px; color: #6b7280;">
+                {{ 'Showing {count} of {total} images'|t('asset-guardian', { count: items|length, total: totalFilteredMissing }) }}
+            </div>
+        </form>
+
+        {# Data Table Card #}
+        <div class="ag-table-card">
+            {% if items|length == 0 %}
+                <div style="padding: 48px 24px; text-align: center;">
+                    <div style="font-size: 40px; margin-bottom: 12px;">🎉</div>
+                    <h3 style="margin: 0; font-size: 18px; font-weight: 700; color: #111827;">
+                        {% if activeSearch or activeVolume %}
+                            {{ 'No matching images without alt text found.'|t('asset-guardian') }}
+                        {% else %}
+                            {{ 'All images have alternative text!'|t('asset-guardian') }}
+                        {% endif %}
+                    </h3>
+                    <p style="margin: 8px 0 0; color: #6b7280; font-size: 13px;">
+                        {% if activeSearch or activeVolume %}
+                            {{ 'Try adjusting your volume or search filters.'|t('asset-guardian') }}
+                        {% else %}
+                            {{ 'Your asset library currently has 100% alt text coverage. Great job!'|t('asset-guardian') }}
+                        {% endif %}
+                    </p>
+                </div>
+            {% else %}
+                <table class="ag-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 320px;">{{ 'Image Asset'|t('asset-guardian') }}</th>
+                            <th style="width: 140px;">{{ 'Volume'|t('asset-guardian') }}</th>
+                            <th style="width: 140px;">{{ 'Usage Status'|t('asset-guardian') }}</th>
+                            <th>{{ 'Add Alternative Text (Inline)'|t('asset-guardian') }}</th>
+                            <th style="width: 90px; text-align: right;">{{ 'Actions'|t('asset-guardian') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in items %}
+                            <tr id="row-{{ item.assetId }}">
+                                <td>
+                                    <div class="ag-file-info">
+                                        <div class="ag-thumb-wrap">
+                                            {% if item.thumbUrl %}
+                                                <img src="{{ item.thumbUrl }}" alt="{{ item.filename }}" loading="lazy">
+                                            {% else %}
+                                                <span class="icon" data-icon="image"></span>
+                                            {% endif %}
+                                        </div>
+                                        <div>
+                                            <div class="ag-file-title" title="{{ item.filename }}">
+                                                {{ item.filename }}
+                                            </div>
+                                            <div class="ag-file-meta">
+                                                {{ item.formattedSize }} &bull; {{ item.dimensions }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="ag-badge ag-badge-neutral">{{ item.volumeName }}</span>
+                                </td>
+                                <td>
+                                    {% if item.isUsed %}
+                                        <span class="ag-badge ag-badge-critical" title="{{ 'Referenced in live content. Adding alt text is critical for SEO.'|t('asset-guardian') }}">
+                                            {{ '{count} Relations'|t('asset-guardian', { count: item.usageCount }) }}
+                                        </span>
+                                    {% else %}
+                                        <span class="ag-badge ag-badge-neutral">
+                                            {{ 'Unused'|t('asset-guardian') }}
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <form method="post" class="ag-inline-alt js-alt-form" data-asset-id="{{ item.assetId }}">
+                                        {{ csrfInput() }}
+                                        {{ actionInput('asset-guardian/missing-alt/save-alt') }}
+                                        <input type="hidden" name="assetId" value="{{ item.assetId }}">
+                                        <input type="text"
+                                               name="alt"
+                                               class="ag-alt-input js-alt-input"
+                                               placeholder="{{ 'Describe image for screen readers...'|t('asset-guardian') }}"
+                                               required>
+                                        <button type="submit" class="ag-alt-save-btn js-alt-save-btn">
+                                            {{ 'Save'|t('asset-guardian') }}
+                                        </button>
+                                    </form>
+                                </td>
+                                <td style="text-align: right;">
+                                    <a href="{{ item.editUrl }}"
+                                       class="btn small"
+                                       target="_blank"
+                                       rel="noopener"
+                                       title="{{ 'Open asset editor in new tab'|t('asset-guardian') }}">
+                                        {{ 'Edit'|t('asset-guardian') }}
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+                {# Pagination #}
+                {% if totalPages > 1 %}
+                    <div class="ag-pagination">
+                        <div>
+                            {{ 'Page {current} of {total}'|t('asset-guardian', { current: currentPage, total: totalPages }) }}
+                        </div>
+                        <div class="btn-group">
+                            {% if currentPage > 1 %}
+                                <a href="{{ cpUrl('asset-guardian/missing-alt', {
+                                    page: currentPage - 1,
+                                    volume: activeVolume,
+                                    search: activeSearch,
+                                    sort: activeSort
+                                }) }}" class="btn">{{ 'Previous'|t('asset-guardian') }}</a>
+                            {% endif %}
+
+                            {% if currentPage < totalPages %}
+                                <a href="{{ cpUrl('asset-guardian/missing-alt', {
+                                    page: currentPage + 1,
+                                    volume: activeVolume,
+                                    search: activeSearch,
+                                    sort: activeSort
+                                }) }}" class="btn">{{ 'Next'|t('asset-guardian') }}</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+
+    {# AJAX Inline Alt Text Save Handler #}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var forms = document.querySelectorAll('.js-alt-form');
+            forms.forEach(function(form) {
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault();
+
+                    var assetId = form.getAttribute('data-asset-id');
+                    var input = form.querySelector('.js-alt-input');
+                    var btn = form.querySelector('.js-alt-save-btn');
+                    var altVal = (input.value || '').trim();
+
+                    if (!altVal) {
+                        Craft.cp.displayError('{{ "Please provide an alt text description."|t("asset-guardian")|e("js") }}');
+                        return;
+                    }
+
+                    btn.disabled = true;
+                    btn.classList.add('saving');
+                    btn.textContent = '{{ "Saving..."|t("asset-guardian")|e("js") }}';
+
+                    var data = {
+                        action: 'asset-guardian/missing-alt/save-alt',
+                        assetId: assetId,
+                        alt: altVal
+                    };
+                    data[Craft.csrfTokenName] = Craft.csrfTokenValue;
+
+                    Craft.sendActionRequest('POST', 'asset-guardian/missing-alt/save-alt', {
+                        data: data
+                    })
+                    .then(function(response) {
+                        Craft.cp.displayNotice('{{ "Alt text saved successfully."|t("asset-guardian")|e("js") }}');
+                        var row = document.getElementById('row-' + assetId);
+                        if (row) {
+                            row.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                            row.style.opacity = '0';
+                            row.style.transform = 'translateY(-10px)';
+                            setTimeout(function() {
+                                row.remove();
+                                var remaining = document.querySelectorAll('.ag-table tbody tr');
+                                if (remaining.length === 0) {
+                                    window.location.reload();
+                                }
+                            }, 300);
+                        }
+                    })
+                    .catch(function(err) {
+                        btn.disabled = false;
+                        btn.classList.remove('saving');
+                        btn.textContent = '{{ "Save"|t("asset-guardian")|e("js") }}';
+                        var msg = err.response && err.response.data && err.response.data.message
+                            ? err.response.data.message
+                            : '{{ "Failed to save alt text."|t("asset-guardian")|e("js") }}';
+                        Craft.cp.displayError(msg);
+                    });
+                });
+            });
+        });
+    </script>
+{% endblock %}

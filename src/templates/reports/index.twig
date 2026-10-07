@@ -1,0 +1,229 @@
+{% extends "asset-guardian/_layouts/cp" %}
+
+{% set selectedSubnavItem = 'reports' %}
+{% set title = 'Reports & Data Exports'|t('asset-guardian') %}
+
+{% block pageContent %}
+    <style>
+        .ag-reports {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        /* Header Card */
+        .ag-header-box {
+            padding: 24px;
+            background: #ffffff;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        .ag-header-box h2 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 700;
+            color: #111827;
+        }
+        .ag-header-box p {
+            margin: 4px 0 0;
+            font-size: 13px;
+            color: #6b7280;
+        }
+        .ag-header-meta {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 13px;
+            color: #4b5563;
+        }
+
+        /* Reports Grid */
+        .ag-report-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 20px;
+        }
+        .ag-report-card {
+            background: #ffffff;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .ag-report-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+        .ag-card-top {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        .ag-card-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+        .ag-icon-blue { background: #eff6ff; color: #1d4ed8; }
+        .ag-icon-amber { background: #fffbeb; color: #b45309; }
+        .ag-icon-purple { background: #faf5ff; color: #7e22ce; }
+        .ag-icon-red { background: #fef2f2; color: #b91c1c; }
+
+        .ag-card-info h3 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 700;
+            color: #111827;
+        }
+        .ag-card-info p {
+            margin: 6px 0 0;
+            font-size: 13px;
+            color: #6b7280;
+            line-height: 1.5;
+        }
+        .ag-card-meta {
+            padding: 12px 14px;
+            background: #f9fafb;
+            border-radius: 6px;
+            font-size: 12px;
+            color: #4b5563;
+            margin-bottom: 20px;
+        }
+        .ag-card-bottom {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+    </style>
+
+    <div class="ag-reports">
+        {# Header Box #}
+        <div class="ag-header-box">
+            <div>
+                <h2>{{ 'Audit Reports & Data Exports'|t('asset-guardian') }}</h2>
+                <p>{{ 'Download comprehensive CSV datasets for stakeholder reporting, client handoffs, and compliance verification.'|t('asset-guardian') }}</p>
+            </div>
+            <div class="ag-header-meta">
+                {% if latestScan %}
+                    <span><strong>{{ 'Latest Scan:'|t('asset-guardian') }}</strong> #{{ latestScan.id }} ({{ latestScan.dateCreated|datetime('short') }})</span>
+                    <span>&bull;</span>
+                    <span><strong>{{ 'Score:'|t('asset-guardian') }}</strong> {{ stats.healthScore }}/100</span>
+                {% else %}
+                    <span>{{ 'No scans executed yet'|t('asset-guardian') }}</span>
+                {% endif %}
+            </div>
+        </div>
+
+        {# Report Grid #}
+        <div class="ag-report-grid">
+            {# 1. Health Audit Summary #}
+            <div class="ag-report-card">
+                <div>
+                    <div class="ag-card-top">
+                        <div class="ag-card-icon ag-icon-blue">📊</div>
+                        <div class="ag-card-info">
+                            <h3>{{ 'Library Health Audit Summary'|t('asset-guardian') }}</h3>
+                            <p>{{ 'High-level executive overview of library health score, total storage footprint, and categorized issue counts.'|t('asset-guardian') }}</p>
+                        </div>
+                    </div>
+                    <div class="ag-card-meta">
+                        <strong>{{ 'Format:'|t('asset-guardian') }}</strong> CSV &bull;
+                        <strong>{{ 'Scope:'|t('asset-guardian') }}</strong> {{ stats.totalAssets }} {{ 'files'|t('asset-guardian') }} ({{ stats.totalStorage }})
+                    </div>
+                </div>
+                <div class="ag-card-bottom">
+                    <span style="font-size: 12px; color: #6b7280;">{{ 'Updated dynamically'|t('asset-guardian') }}</span>
+                    <a href="{{ cpUrl('asset-guardian/reports/download', { type: 'health' }) }}" class="btn submit">
+                        {{ 'Download CSV'|t('asset-guardian') }}
+                    </a>
+                </div>
+            </div>
+
+            {# 2. Unused Assets Report #}
+            <div class="ag-report-card">
+                <div>
+                    <div class="ag-card-top">
+                        <div class="ag-card-icon ag-icon-amber">📦</div>
+                        <div class="ag-card-info">
+                            <h3>{{ 'Unused Assets Inventory'|t('asset-guardian') }}</h3>
+                            <p>{{ 'Detailed list of unreferenced files across all content fields and blocks, including risk ratings and recovery sizes.'|t('asset-guardian') }}</p>
+                        </div>
+                    </div>
+                    <div class="ag-card-meta">
+                        <strong>{{ 'Format:'|t('asset-guardian') }}</strong> CSV &bull;
+                        <strong>{{ 'Unused Candidates:'|t('asset-guardian') }}</strong> {{ stats.unusedCount }} {{ 'files'|t('asset-guardian') }}
+                    </div>
+                </div>
+                <div class="ag-card-bottom">
+                    <span style="font-size: 12px; color: #6b7280;">{{ 'Includes risk rating'|t('asset-guardian') }}</span>
+                    <a href="{{ cpUrl('asset-guardian/reports/download', { type: 'unused' }) }}" class="btn">
+                        {{ 'Download CSV'|t('asset-guardian') }}
+                    </a>
+                </div>
+            </div>
+
+            {# 3. Duplicates Report #}
+            <div class="ag-report-card">
+                <div>
+                    <div class="ag-card-top">
+                        <div class="ag-card-icon ag-icon-purple">📑</div>
+                        <div class="ag-card-info">
+                            <h3>{{ 'Duplicate Assets Audit'|t('asset-guardian') }}</h3>
+                            <p>{{ 'Exact file content duplicates grouped by cryptographic fingerprint, detailing primary assets vs clones.'|t('asset-guardian') }}</p>
+                        </div>
+                    </div>
+                    <div class="ag-card-meta">
+                        <strong>{{ 'Format:'|t('asset-guardian') }}</strong> CSV &bull;
+                        <strong>{{ 'Duplicate Clones:'|t('asset-guardian') }}</strong> {{ stats.duplicateCount }} {{ 'files'|t('asset-guardian') }}
+                    </div>
+                </div>
+                <div class="ag-card-bottom">
+                    <span style="font-size: 12px; color: #6b7280;">{{ 'Grouped by hash'|t('asset-guardian') }}</span>
+                    <a href="{{ cpUrl('asset-guardian/reports/download', { type: 'duplicates' }) }}" class="btn">
+                        {{ 'Download CSV'|t('asset-guardian') }}
+                    </a>
+                </div>
+            </div>
+
+            {# 4. Missing Alt Text Report #}
+            <div class="ag-report-card">
+                <div>
+                    <div class="ag-card-top">
+                        <div class="ag-card-icon ag-icon-red">♿</div>
+                        <div class="ag-card-info">
+                            <h3>{{ 'Accessibility & Alt Text Report'|t('asset-guardian') }}</h3>
+                            <p>{{ 'Audit of all image assets missing alternative text metadata, with dimensions, volumes, and content relations.'|t('asset-guardian') }}</p>
+                        </div>
+                    </div>
+                    <div class="ag-card-meta">
+                        <strong>{{ 'Format:'|t('asset-guardian') }}</strong> CSV &bull;
+                        <strong>{{ 'Missing Alt:'|t('asset-guardian') }}</strong> {{ stats.missingAltCount }} {{ 'images'|t('asset-guardian') }}
+                    </div>
+                </div>
+                <div class="ag-card-bottom">
+                    <span style="font-size: 12px; color: #6b7280;">{{ 'Accessibility compliance'|t('asset-guardian') }}</span>
+                    <a href="{{ cpUrl('asset-guardian/reports/download', { type: 'missing-alt' }) }}" class="btn">
+                        {{ 'Download CSV'|t('asset-guardian') }}
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

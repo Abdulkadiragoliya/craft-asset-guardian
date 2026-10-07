@@ -1,0 +1,296 @@
+{% extends "asset-guardian/_layouts/cp" %}
+
+{% set selectedSubnavItem = 'large-files' %}
+{% set title = 'Large Files'|t('asset-guardian') %}
+
+{% block pageContent %}
+    <style>
+        .ag-page {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .ag-page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 16px;
+            padding: 20px 24px;
+            background: var(--card-bg, #fff);
+            border-radius: var(--border-radius, 8px);
+            border: 1px solid var(--border-color, #e5e7eb);
+        }
+        .ag-page-header h1 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-color, #111827);
+        }
+        .ag-page-header p {
+            margin: 4px 0 0 0;
+            font-size: 13px;
+            color: #6b7280;
+        }
+        .ag-summary-pills {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .ag-summary-pill {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+        .ag-summary-pill strong {
+            color: #0f172a;
+            font-weight: 700;
+        }
+
+        /* Threshold switcher buttons */
+        .ag-threshold-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            padding: 12px 20px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 13px;
+        }
+        .ag-threshold-pill {
+            padding: 5px 12px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 12px;
+            border: 1px solid #cbd5e1;
+            background: #fff;
+            color: #475569;
+        }
+        .ag-threshold-pill.active {
+            background: #0284c7;
+            color: #fff;
+            border-color: #0284c7;
+        }
+
+        /* Risk Badges */
+        .ag-risk-low {
+            background: #ecfdf5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .ag-risk-medium {
+            background: #fffbeb;
+            color: #92400e;
+            border: 1px solid #fde68a;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .ag-risk-high {
+            background: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+    </style>
+
+    <div class="ag-page">
+
+        {# Header #}
+        <div class="ag-page-header">
+            <div>
+                <h1>{{ 'Large Files'|t('asset-guardian') }}</h1>
+                <p>{{ 'Identifies files exceeding your configured size threshold to help investigate storage waste.'|t('asset-guardian') }}</p>
+            </div>
+
+            <div class="ag-summary-pills">
+                <div class="ag-summary-pill">
+                    <span>{{ 'Files above {threshold}:'|t('asset-guardian', { threshold: activeThresholdLabel }) }}</span>
+                    <strong>{{ totalCount|number }}</strong>
+                </div>
+                <div class="ag-summary-pill">
+                    <span>{{ 'Storage footprint:'|t('asset-guardian') }}</span>
+                    <strong style="color: #0284c7;">{{ formattedTotalBytes }}</strong>
+                </div>
+            </div>
+        </div>
+
+        {# Threshold Switcher #}
+        <div class="ag-threshold-bar">
+            <span style="font-weight: 700; color: #334155;">{{ 'Size Threshold:'|t('asset-guardian') }}</span>
+            {% for bytes, label in thresholdOptions %}
+                <a href="{{ cpUrl('asset-guardian/large-files', currentFilters|merge({ threshold: bytes })) }}"
+                   class="ag-threshold-pill {{ activeThresholdBytes == bytes ? 'active' : '' }}">
+                    {{ label }}
+                </a>
+            {% endfor %}
+        </div>
+
+        {# Filter Toolbar #}
+        <div class="card" style="padding: 14px 20px;">
+            <form method="get" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 0;">
+                <input type="hidden" name="threshold" value="{{ activeThresholdBytes }}">
+
+                <input type="text"
+                       name="search"
+                       placeholder="{{ 'Search large file...'|t('asset-guardian') }}"
+                       value="{{ currentFilters.search }}"
+                       style="padding: 6px 12px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; min-width: 220px;">
+
+                <select name="volume" style="padding: 6px 12px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                    <option value="">{{ 'All Volumes'|t('asset-guardian') }}</option>
+                    {% for v in volumes %}
+                        <option value="{{ v.handle }}" {{ currentFilters.volume == v.handle ? 'selected' : '' }}>
+                            {{ v.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+
+                <select name="kind" style="padding: 6px 12px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                    <option value="">{{ 'All Kinds'|t('asset-guardian') }}</option>
+                    <option value="image" {{ currentFilters.kind == 'image' ? 'selected' : '' }}>{{ 'Images'|t('asset-guardian') }}</option>
+                    <option value="video" {{ currentFilters.kind == 'video' ? 'selected' : '' }}>{{ 'Videos'|t('asset-guardian') }}</option>
+                    <option value="pdf" {{ currentFilters.kind == 'pdf' ? 'selected' : '' }}>{{ 'PDFs'|t('asset-guardian') }}</option>
+                    <option value="audio" {{ currentFilters.kind == 'audio' ? 'selected' : '' }}>{{ 'Audio'|t('asset-guardian') }}</option>
+                </select>
+
+                <select name="sort" style="padding: 6px 12px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                    <option value="size_desc" {{ currentFilters.sort == 'size_desc' ? 'selected' : '' }}>{{ 'Size (Largest first)'|t('asset-guardian') }}</option>
+                    <option value="size_asc" {{ currentFilters.sort == 'size_asc' ? 'selected' : '' }}>{{ 'Size (Smallest first)'|t('asset-guardian') }}</option>
+                    <option value="date_desc" {{ currentFilters.sort == 'date_desc' ? 'selected' : '' }}>{{ 'Modified (Newest)'|t('asset-guardian') }}</option>
+                    <option value="date_asc" {{ currentFilters.sort == 'date_asc' ? 'selected' : '' }}>{{ 'Modified (Oldest)'|t('asset-guardian') }}</option>
+                    <option value="name_asc" {{ currentFilters.sort == 'name_asc' ? 'selected' : '' }}>{{ 'Filename (A-Z)'|t('asset-guardian') }}</option>
+                </select>
+
+                <button type="submit" class="btn small">{{ 'Filter'|t('app') }}</button>
+
+                {% if currentFilters.search or currentFilters.volume or currentFilters.kind %}
+                    <a href="{{ cpUrl('asset-guardian/large-files', { threshold: activeThresholdBytes }) }}" class="btn small light">
+                        {{ 'Reset'|t('asset-guardian') }}
+                    </a>
+                {% endif %}
+            </form>
+        </div>
+
+        {# Data Table #}
+        {% if items|length > 0 %}
+            <div class="card" style="padding: 0; overflow: hidden;">
+                <div class="tableview">
+                    <table class="data fullwidth">
+                        <thead>
+                            <tr>
+                                <th style="width: 44px;"></th>
+                                <th>{{ 'Filename'|t('asset-guardian') }}</th>
+                                <th>{{ 'Size'|t('asset-guardian') }}</th>
+                                <th>{{ 'Type'|t('asset-guardian') }}</th>
+                                <th>{{ 'Volume'|t('asset-guardian') }}</th>
+                                <th>{{ 'Usage'|t('asset-guardian') }}</th>
+                                <th>{{ 'Modified'|t('asset-guardian') }}</th>
+                                <th>{{ 'Risk Level'|t('asset-guardian') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in items %}
+                                <tr>
+                                    {# Kind Icon #}
+                                    <td style="text-align: center;">
+                                        {% if item.kind == 'image' %}
+                                            <span class="icon" style="color: #0284c7;" title="{{ item.kind }}">🖼️</span>
+                                        {% elseif item.kind == 'video' %}
+                                            <span class="icon" style="color: #8b5cf6;" title="{{ item.kind }}">🎬</span>
+                                        {% elseif item.kind == 'pdf' or item.kind == 'document' %}
+                                            <span class="icon" style="color: #ef4444;" title="{{ item.kind }}">📄</span>
+                                        {% else %}
+                                            <span class="icon" style="color: #64748b;" title="{{ item.kind }}">📁</span>
+                                        {% endif %}
+                                    </td>
+
+                                    {# Filename #}
+                                    <td>
+                                        <strong>{{ item.filename }}</strong>
+                                    </td>
+
+                                    {# Size #}
+                                    <td>
+                                        <strong style="color: #1e293b;">{{ item.formattedSize }}</strong>
+                                    </td>
+
+                                    {# Type #}
+                                    <td>
+                                        <span class="badge light">{{ item.kind|upper }}</span>
+                                    </td>
+
+                                    {# Volume #}
+                                    <td>
+                                        <span class="light">{{ item.volumeName }}</span>
+                                    </td>
+
+                                    {# Usage Count #}
+                                    <td>
+                                        {% if item.usageCount > 0 %}
+                                            <span style="color: #0284c7; font-weight: 600;">
+                                                {{ '{count} references'|t('asset-guardian', { count: item.usageCount }) }}
+                                            </span>
+                                        {% else %}
+                                            <span class="light">{{ '0 references'|t('asset-guardian') }}</span>
+                                        {% endif %}
+                                    </td>
+
+                                    {# Modified #}
+                                    <td>
+                                        {% if item.dateModified %}
+                                            {{ item.dateModified|datetime('short') }}
+                                        {% else %}
+                                            —
+                                        {% endif %}
+                                    </td>
+
+                                    {# Risk Badge #}
+                                    <td>
+                                        {% if item.risk == 'low' %}
+                                            <span class="ag-risk-low">{{ 'Low Risk'|t('asset-guardian') }}</span>
+                                        {% elseif item.risk == 'medium' %}
+                                            <span class="ag-risk-medium">{{ 'Review Req.'|t('asset-guardian') }}</span>
+                                        {% else %}
+                                            <span class="ag-risk-high">{{ 'High Risk'|t('asset-guardian') }}</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        {% else %}
+            <div class="card" style="padding: 32px; text-align: center;">
+                <div style="font-size: 32px; margin-bottom: 12px;">✅</div>
+                <h3 style="margin: 0 0 6px 0; font-size: 18px; font-weight: 700;">
+                    {{ 'No assets exceed your current {threshold} threshold.'|t('asset-guardian', { threshold: activeThresholdLabel }) }}
+                </h3>
+                <p class="light" style="margin: 0;">
+                    {{ 'Your asset library does not contain oversized files beyond this limit.'|t('asset-guardian') }}
+                </p>
+            </div>
+        {% endif %}
+
+    </div>
+{% endblock %}

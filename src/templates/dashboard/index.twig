@@ -1,0 +1,582 @@
+{% extends "asset-guardian/_layouts/cp" %}
+
+{% set selectedSubnavItem = 'dashboard' %}
+{% set title = 'Dashboard'|t('asset-guardian') %}
+
+{% block pageContent %}
+    <style>
+        .ag-dashboard {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        .ag-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 16px;
+            padding: 20px 24px;
+            background: var(--card-bg, #fff);
+            border-radius: var(--border-radius, 8px);
+            border: 1px solid var(--border-color, #e5e7eb);
+        }
+        .ag-header h1 {
+            margin: 0;
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text-color, #111827);
+        }
+        .ag-header .subtitle {
+            margin-top: 4px;
+            font-size: 13px;
+            color: #6b7280;
+        }
+        .ag-header-meta {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 13px;
+            color: #6b7280;
+        }
+        .ag-pulse {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #0284c7;
+            box-shadow: 0 0 0 rgba(2, 132, 199, 0.4);
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(2, 132, 199, 0.7); }
+            70% { box-shadow: 0 0 0 8px rgba(2, 132, 199, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(2, 132, 199, 0); }
+        }
+
+        /* High-Contrast Badges & Status Pills */
+        .ag-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 9999px;
+            font-size: 12px;
+            font-weight: 600;
+            line-height: 1.2;
+            letter-spacing: 0.01em;
+            vertical-align: middle;
+        }
+        .ag-badge--scanning {
+            background: #eff6ff !important;
+            color: #0369a1 !important;
+            border: 1px solid #bae6fd !important;
+        }
+        .ag-badge--success {
+            background: #ecfdf5 !important;
+            color: #047857 !important;
+            border: 1px solid #a7f3d0 !important;
+        }
+        .ag-badge--info {
+            background: #eff6ff !important;
+            color: #1d4ed8 !important;
+            border: 1px solid #bfdbfe !important;
+        }
+        .ag-badge--warning {
+            background: #fffbeb !important;
+            color: #b45309 !important;
+            border: 1px solid #fde68a !important;
+        }
+        .ag-badge--error {
+            background: #fef2f2 !important;
+            color: #b91c1c !important;
+            border: 1px solid #fecaca !important;
+        }
+        .ag-badge--light {
+            background: #f3f4f6 !important;
+            color: #4b5563 !important;
+            border: 1px solid #e5e7eb !important;
+        }
+
+        /* Health Score Banner */
+        .ag-health-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+            padding: 24px;
+            background: var(--card-bg, #fff);
+            border-radius: var(--border-radius, 8px);
+            border: 1px solid var(--border-color, #e5e7eb);
+        }
+        .ag-health-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .ag-health-circle {
+            width: 84px;
+            height: 84px;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 5px solid {{ health.color }};
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+        }
+        .ag-health-circle .number {
+            font-size: 24px;
+            font-weight: 800;
+            line-height: 1;
+            color: {{ health.color }};
+        }
+        .ag-health-circle .total {
+            font-size: 11px;
+            color: #9ca3af;
+            font-weight: 600;
+            margin-top: 2px;
+        }
+        .ag-health-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin: 0 0 4px 0;
+            color: var(--text-color, #111827);
+        }
+        .ag-health-desc {
+            font-size: 13px;
+            color: #6b7280;
+            margin: 0;
+            max-width: 520px;
+        }
+
+        /* Stat Grid */
+        .ag-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+        }
+        .ag-stat-card {
+            padding: 20px;
+            background: var(--card-bg, #fff);
+            border-radius: var(--border-radius, 8px);
+            border: 1px solid var(--border-color, #e5e7eb);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .ag-stat-label {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #6b7280;
+            margin-bottom: 8px;
+        }
+        .ag-stat-value {
+            font-size: 26px;
+            font-weight: 800;
+            color: var(--text-color, #111827);
+            line-height: 1.1;
+        }
+        .ag-stat-sub {
+            font-size: 12px;
+            color: #9ca3af;
+            margin-top: 6px;
+        }
+
+        /* Needs Attention Grid */
+        .ag-attention-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 16px;
+        }
+        .ag-attention-card {
+            padding: 20px;
+            background: var(--card-bg, #fff);
+            border-radius: var(--border-radius, 8px);
+            border: 1px solid var(--border-color, #e5e7eb);
+            border-left: 4px solid #f59e0b;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .ag-attention-card.is-ok {
+            border-left-color: #10b981;
+        }
+        .ag-attention-title {
+            font-size: 15px;
+            font-weight: 700;
+            margin: 0 0 6px 0;
+            color: var(--text-color, #111827);
+        }
+        .ag-attention-desc {
+            font-size: 13px;
+            color: #6b7280;
+            margin: 0 0 16px 0;
+        }
+
+        /* Progress bars */
+        .ag-storage-bars {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .ag-storage-row {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .ag-storage-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+        }
+        .ag-storage-bar-bg {
+            height: 8px;
+            background: #f3f4f6;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .ag-storage-bar-fill {
+            height: 100%;
+            background: #0284c7;
+            border-radius: 4px;
+        }
+    </style>
+
+    <div class="ag-dashboard">
+
+        {# Top Header Banner #}
+        <div class="ag-header">
+            <div>
+                <h1>{{ 'Asset Guardian'|t('asset-guardian') }}</h1>
+                <div class="subtitle">{{ 'Asset Health & Safe Cleanup for Craft CMS'|t('asset-guardian') }}</div>
+            </div>
+
+            <div class="ag-header-meta">
+                {% if isScanRunning %}
+                    <span class="ag-badge ag-badge--scanning">
+                        <span class="ag-pulse"></span>
+                        {{ 'Scanning in progress...'|t('asset-guardian') }}
+                    </span>
+                {% elseif latestScan %}
+                    <div>
+                        <strong>{{ 'Last scan:'|t('asset-guardian') }}</strong>
+                        {{ latestScan.dateCreated|datetime('short') }}
+                        ({{ duration }})
+                    </div>
+                {% endif %}
+
+                {% if isScanRunning %}
+                    <button class="btn disabled" disabled>
+                        {{ 'Scanning...'|t('asset-guardian') }}
+                    </button>
+                {% else %}
+                    <form method="post" accept-charset="UTF-8" style="margin: 0; display: inline-block;">
+                        {{ csrfInput() }}
+                        {{ actionInput('asset-guardian/dashboard/scan') }}
+                        {{ redirectInput('asset-guardian/dashboard') }}
+                        <button type="submit" class="btn submit">
+                            {{ 'Scan Now'|t('asset-guardian') }}
+                        </button>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+
+        {# Scan Failed Banner #}
+        {% if lastScanFailed and failedScan %}
+            <div class="notice notice--error" style="margin: 0;">
+                <p>
+                    <strong>{{ 'Scan Failed'|t('asset-guardian') }} ({{ failedScan.dateCreated|datetime('short') }}):</strong>
+                    {{ failedScan.errorMessage ?? 'An error occurred during scanning.'|t('asset-guardian') }}
+                </p>
+            </div>
+        {% endif %}
+
+        {# First-Run Onboarding Banner if no scan completed yet #}
+        {% if not latestScan %}
+            <div class="notice notice--info" style="margin: 0; padding: 20px;">
+                <h3 style="margin-top: 0; font-size: 16px; font-weight: 700;">
+                    {{ 'Your asset library has not been scanned yet.'|t('asset-guardian') }}
+                </h3>
+                <p style="margin-bottom: 16px; color: #4b5563;">
+                    {{ 'Run your first scan to discover:'|t('asset-guardian') }}
+                </p>
+                <ul style="margin: 0 0 16px 20px; line-height: 1.6; color: #4b5563;">
+                    <li><strong>{{ 'Unused assets:'|t('asset-guardian') }}</strong> {{ 'Files with zero supported content relations across entries, matrix blocks, and globals.'|t('asset-guardian') }}</li>
+                    <li><strong>{{ 'Duplicate assets:'|t('asset-guardian') }}</strong> {{ 'Exact file-content duplicates wasting storage space.'|t('asset-guardian') }}</li>
+                    <li><strong>{{ 'Large files:'|t('asset-guardian') }}</strong> {{ 'Assets exceeding your configured size threshold ({threshold}).'|t('asset-guardian', { threshold: thresholdLabel }) }}</li>
+                    <li><strong>{{ 'Missing alt text:'|t('asset-guardian') }}</strong> {{ 'Images missing accessibility metadata.'|t('asset-guardian') }}</li>
+                    <li><strong>{{ 'Storage opportunities:'|t('asset-guardian') }}</strong> {{ 'Non-destructive recommendations to safely reclaim disk space.'|t('asset-guardian') }}</li>
+                </ul>
+                <form method="post" accept-charset="UTF-8" style="margin: 0; display: inline-block;">
+                    {{ csrfInput() }}
+                    {{ actionInput('asset-guardian/dashboard/scan') }}
+                    {{ redirectInput('asset-guardian/dashboard') }}
+                    <button type="submit" class="btn submit">
+                        {{ 'Run First Scan'|t('asset-guardian') }}
+                    </button>
+                </form>
+            </div>
+        {% endif %}
+
+        {# Health Score Banner #}
+        <div class="ag-health-card">
+            <div class="ag-health-left">
+                <div class="ag-health-circle">
+                    <span class="number">{{ health.score }}</span>
+                    <span class="total">/ 100</span>
+                </div>
+                <div>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
+                        <h2 class="ag-health-title">{{ 'Asset Health Score'|t('asset-guardian') }}</h2>
+                        <span class="ag-badge ag-badge--{{ health.badgeClass }}">{{ health.label }}</span>
+                    </div>
+                    <p class="ag-health-desc">{{ health.description }}</p>
+                </div>
+            </div>
+
+            {% if latestScan %}
+                <div style="text-align: right; font-size: 12px; color: #9ca3af;">
+                    <div>{{ '{count} assets analyzed'|t('asset-guardian', { count: latestScan.totalAssets|number }) }}</div>
+                    <div>{{ 'Deterministic ratio analysis'|t('asset-guardian') }}</div>
+                </div>
+            {% endif %}
+        </div>
+
+        {# 6 Primary Statistics Cards #}
+        <div class="ag-stats-grid">
+            {# Total Storage #}
+            <div class="ag-stat-card">
+                <div class="ag-stat-label">{{ 'Total Storage'|t('asset-guardian') }}</div>
+                <div class="ag-stat-value">{{ stats.totalStorage }}</div>
+                <div class="ag-stat-sub">{{ '{count} assets'|t('asset-guardian', { count: stats.totalAssets|number }) }}</div>
+            </div>
+
+            {# Unused Assets #}
+            <div class="ag-stat-card">
+                <div class="ag-stat-label">{{ 'Unused Assets'|t('asset-guardian') }}</div>
+                <div class="ag-stat-value" style="color: {{ stats.unusedCount > 0 ? '#d97706' : 'inherit' }};">
+                    {{ stats.unusedCount|number }}
+                </div>
+                <div class="ag-stat-sub">
+                    {% if latestScan %}
+                        {{ '{count} unreferenced files'|t('asset-guardian', { count: stats.unusedCount|number }) }}
+                    {% else %}
+                        {{ 'Requires library scan'|t('asset-guardian') }}
+                    {% endif %}
+                </div>
+            </div>
+
+            {# Duplicate Assets #}
+            <div class="ag-stat-card">
+                <div class="ag-stat-label">{{ 'Duplicate Assets'|t('asset-guardian') }}</div>
+                <div class="ag-stat-value" style="color: {{ stats.duplicateCount > 0 ? '#d97706' : 'inherit' }};">
+                    {{ stats.duplicateCount|number }}
+                </div>
+                <div class="ag-stat-sub">
+                    {% if latestScan %}
+                        {{ 'Identical content hashes'|t('asset-guardian') }}
+                    {% else %}
+                        {{ 'Requires library scan'|t('asset-guardian') }}
+                    {% endif %}
+                </div>
+            </div>
+
+            {# Large Files #}
+            <div class="ag-stat-card">
+                <div class="ag-stat-label">{{ 'Large Files'|t('asset-guardian') }}</div>
+                <div class="ag-stat-value" style="color: {{ stats.largeFileCount > 0 ? '#0284c7' : 'inherit' }};">
+                    {{ stats.largeFileCount|number }}
+                </div>
+                <div class="ag-stat-sub">{{ 'Above {threshold}'|t('asset-guardian', { threshold: thresholdLabel }) }}</div>
+            </div>
+
+            {# Missing Alt Text #}
+            <div class="ag-stat-card">
+                <div class="ag-stat-label">{{ 'Missing Alt Text'|t('asset-guardian') }}</div>
+                <div class="ag-stat-value" style="color: {{ stats.missingAltCount > 0 ? '#d97706' : 'inherit' }};">
+                    {{ stats.missingAltCount|number }}
+                </div>
+                <div class="ag-stat-sub">{{ 'Images'|t('asset-guardian') }}</div>
+            </div>
+
+            {# Recoverable Storage #}
+            <div class="ag-stat-card" style="border-left: 4px solid #10b981;">
+                <div class="ag-stat-label" style="color: #059669;">{{ 'Recoverable Storage'|t('asset-guardian') }}</div>
+                <div class="ag-stat-value" style="color: #059669;">{{ stats.formattedRecoverable }}</div>
+                <div class="ag-stat-sub">{{ 'Potential non-destructive savings'|t('asset-guardian') }}</div>
+            </div>
+        </div>
+
+        {# NEEDS ATTENTION Section #}
+        <div>
+            <h2 style="font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; margin-bottom: 12px;">
+                {{ 'Needs Attention'|t('asset-guardian') }}
+            </h2>
+
+            <div class="ag-attention-grid">
+                {# Duplicate Assets Review #}
+                <div class="ag-attention-card {{ stats.duplicateCount == 0 and latestScan ? 'is-ok' : '' }}">
+                    <div>
+                        <h3 class="ag-attention-title">{{ 'Duplicate Assets'|t('asset-guardian') }}</h3>
+                        <p class="ag-attention-desc">
+                            {% if latestScan %}
+                                {{ '{count} duplicate assets detected across configured volumes.'|t('asset-guardian', { count: stats.duplicateCount|number }) }}
+                            {% else %}
+                                {{ 'Discover identical files and safely repoint references.'|t('asset-guardian') }}
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div>
+                        <a href="{{ cpUrl('asset-guardian/duplicates') }}" class="btn small">
+                            {{ 'Review Duplicates'|t('asset-guardian') }}
+                        </a>
+                    </div>
+                </div>
+
+                {# Unused Assets Review #}
+                <div class="ag-attention-card {{ stats.unusedCount == 0 and latestScan ? 'is-ok' : '' }}">
+                    <div>
+                        <h3 class="ag-attention-title">{{ 'Unused Assets'|t('asset-guardian') }}</h3>
+                        <p class="ag-attention-desc">
+                            {% if latestScan %}
+                                {{ '{count} unused assets flagged with verified risk ratings.'|t('asset-guardian', { count: stats.unusedCount|number }) }}
+                            {% else %}
+                                {{ 'Detect unreferenced assets across Craft entries and fields.'|t('asset-guardian') }}
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div>
+                        <a href="{{ cpUrl('asset-guardian/unused') }}" class="btn small">
+                            {{ 'Review Unused'|t('asset-guardian') }}
+                        </a>
+                    </div>
+                </div>
+
+                {# Large Files Review #}
+                <div class="ag-attention-card {{ stats.largeFileCount == 0 and latestScan ? 'is-ok' : '' }}">
+                    <div>
+                        <h3 class="ag-attention-title">{{ 'Large Files'|t('asset-guardian') }}</h3>
+                        <p class="ag-attention-desc">
+                            {% if latestScan %}
+                                {{ '{count} files above configured {threshold} threshold.'|t('asset-guardian', { count: stats.largeFileCount|number, threshold: thresholdLabel }) }}
+                            {% else %}
+                                {{ 'Locate oversized files that consume excessive bandwidth.'|t('asset-guardian') }}
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div>
+                        <a href="{{ cpUrl('asset-guardian/large-files') }}" class="btn small">
+                            {{ 'Review Large Files'|t('asset-guardian') }}
+                        </a>
+                    </div>
+                </div>
+
+                {# Missing Alt Text Review #}
+                <div class="ag-attention-card {{ stats.missingAltCount == 0 and latestScan ? 'is-ok' : '' }}">
+                    <div>
+                        <h3 class="ag-attention-title">{{ 'Missing Alt Text'|t('asset-guardian') }}</h3>
+                        <p class="ag-attention-desc">
+                            {% if latestScan %}
+                                {{ '{count} images missing alt text metadata.'|t('asset-guardian', { count: stats.missingAltCount|number }) }}
+                            {% else %}
+                                {{ 'Audit image accessibility attributes across your volumes.'|t('asset-guardian') }}
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div>
+                        <a href="{{ cpUrl('asset-guardian/missing-alt') }}" class="btn small">
+                            {{ 'Review Alt Text'|t('asset-guardian') }}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# Storage Breakdown by Volume & Kind #}
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 16px;">
+            {# Volume Breakdown #}
+            <div class="card" style="padding: 24px;">
+                <h3 style="margin-top: 0; font-size: 16px; font-weight: 700; margin-bottom: 16px;">
+                    {{ 'Storage by Volume'|t('asset-guardian') }}
+                </h3>
+
+                {% if storageByVolume|length > 0 %}
+                    <div class="ag-storage-bars">
+                        {% for v in storageByVolume %}
+                            <div class="ag-storage-row">
+                                <div class="ag-storage-info">
+                                    <a href="{{ cpUrl('asset-guardian/explorer', { volume: v.handle }) }}" style="font-weight: 600;">
+                                        {{ v.name }}
+                                    </a>
+                                    <span style="color: #6b7280;">
+                                        {{ v.formattedBytes }} ({{ v.percentage }}%)
+                                    </span>
+                                </div>
+                                <div class="ag-storage-bar-bg">
+                                    <div class="ag-storage-bar-fill" style="width: {{ v.percentage }}%;"></div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="light">{{ 'No asset volumes found in Craft CMS.'|t('asset-guardian') }}</p>
+                {% endif %}
+            </div>
+
+            {# File Kind Breakdown #}
+            <div class="card" style="padding: 24px;">
+                <h3 style="margin-top: 0; font-size: 16px; font-weight: 700; margin-bottom: 16px;">
+                    {{ 'Storage by File Kind'|t('asset-guardian') }}
+                </h3>
+
+                {% if storageByKind|length > 0 %}
+                    <div class="ag-storage-bars">
+                        {% for k in storageByKind %}
+                            <div class="ag-storage-row">
+                                <div class="ag-storage-info">
+                                    <span style="font-weight: 600;">{{ k.kind }}</span>
+                                    <span style="color: #6b7280;">
+                                        {{ k.formattedBytes }} ({{ k.percentage }}%)
+                                    </span>
+                                </div>
+                                <div class="ag-storage-bar-bg">
+                                    <div class="ag-storage-bar-fill" style="width: {{ k.percentage }}%; background: #059669;"></div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="light">{{ 'No assets found.'|t('asset-guardian') }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+
+    {% if isScanRunning %}
+        <script>
+            (function pollScan() {
+                var interval = setInterval(function() {
+                    Craft.sendActionRequest('GET', 'asset-guardian/dashboard/status')
+                        .then(function(res) {
+                            if (res.data && !res.data.running) {
+                                clearInterval(interval);
+                                Craft.cp.displayNotice('{{ "Scan completed successfully."|t("asset-guardian")|e("js") }}');
+                                setTimeout(function() {
+                                    window.location.reload();
+                                }, 600);
+                            }
+                        })
+                        .catch(function() {
+                            // ignore temporary network blips
+                        });
+                }, 2000);
+            })();
+        </script>
+    {% endif %}
+{% endblock %}

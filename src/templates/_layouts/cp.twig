@@ -1,0 +1,8 @@
+{% extends "_layouts/cp" %}
+
+{% set selectedSubnavItem = selectedSubnavItem ?? 'dashboard' %}
+{% set title = title ?? 'Asset Guardian'|t('asset-guardian') %}
+
+{% block content %}
+    {{ block('pageContent') }}
+{% endblock %}

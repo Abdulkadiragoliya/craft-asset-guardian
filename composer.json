@@ -1,0 +1,48 @@
+{
+  "name": "abdulkadiragoliya/asset-guardian",
+  "description": "Asset Health & Safe Cleanup for Craft CMS. Know what's safe to review before you clean.",
+  "type": "craft-plugin",
+  "keywords": [
+    "craft",
+    "cms",
+    "craftcms",
+    "craft-plugin",
+    "assets",
+    "asset-management",
+    "cleanup",
+    "health-score",
+    "unused-assets",
+    "duplicate-assets"
+  ],
+  "homepage": "https://github.com/Abdulkadiragoliya/craft-asset-guardian",
+  "support": {
+    "email": "abdulkadir.agoliya@gmail.com",
+    "docs": "https://github.com/Abdulkadiragoliya/craft-asset-guardian#readme",
+    "issues": "https://github.com/Abdulkadiragoliya/craft-asset-guardian/issues"
+  },
+  "license": "craft",
+  "authors": [
+    {
+      "name": "Abdulkadir Agoliya",
+      "homepage": "https://github.com/Abdulkadiragoliya"
+    }
+  ],
+  "require": {
+    "php": "^8.2.0",
+    "craftcms/cms": "^5.0.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "abdulkadiragoliya\\assetguardian\\": "src/"
+    }
+  },
+  "extra": {
+    "name": "Asset Guardian",
+    "handle": "asset-guardian",
+    "developer": "Abdulkadir Agoliya",
+    "developerUrl": "https://github.com/Abdulkadiragoliya",
+    "documentationUrl": "https://github.com/Abdulkadiragoliya/craft-asset-guardian#readme",
+    "changelogUrl": "https://raw.githubusercontent.com/Abdulkadiragoliya/craft-asset-guardian/main/CHANGELOG.md",
+    "class": "abdulkadiragoliya\\assetguardian\\AssetGuardian"
+  }
+}
